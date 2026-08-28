@@ -24,8 +24,10 @@
   <script>
   (function(){
     var app=document.getElementById('app');
-    var defaults={status:'Not started',buyerName:'',buyerMobile:'',inviteSent:false,sellerKyc:false,buyerAccepted:false,buyerKyc:false,submitted:false};
+    var defaults={status:'Not started',buyerName:'',buyerMobile:'',inviteSent:false,sellerKyc:false,buyerAccepted:false,buyerKyc:false,submitted:false,vehicleVerified:false};
     var state={screen:'landing',authStep:'identity',method:'dl',authRole:'seller',role:localStorage.getItem('rr-role')||'seller',active:'overview',selected:'ka01',detail:false,modal:null,transferStep:0,kycStep:0,toast:'',challanPaid:localStorage.getItem('rr-challan')==='true',challanStatus:localStorage.getItem('rr-challan-status')||'unpaid',transfer:load(),chatOpen:false,chatHistory:[{role:'bot',text:'Namaste! I am Parivahan Sahayak, your AI guide to Indian motor vehicle rules. How can I help you today?'}]};
+    var nocCleared = false;
+    var hsrpBooked = false;
     var vehicles=[
       {id:'ka01',icon:'🚙',name:'Hyundai Creta',reg:'KA 01 MT 4582',year:'2021',fuel:'Petrol',state:'Karnataka',puc:'Expires 04 Sep',risk:'PUC due soon'},
       {id:'ka05',icon:'🛵',name:'TVS Ntorq 125',reg:'KA 05 QV 1180',year:'2022',fuel:'Petrol',state:'Karnataka',puc:'Valid until 16 Jan 2027',risk:'All clear'},
