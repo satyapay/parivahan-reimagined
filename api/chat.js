@@ -41,14 +41,14 @@ User's question: ${message}`;
     const data = await response.json();
     
     if (!response.ok) {
-        console.error("Gemini API Error:", data);
-        return res.status(500).json({ error: 'Failed to fetch from Gemini API' });
+        console.error("Gemini API Error:", JSON.stringify(data));
+        return res.status(500).json({ error: 'Failed to fetch from Gemini API', details: data });
     }
 
     const reply = data.candidates[0].content.parts[0].text;
     res.status(200).json({ reply });
   } catch (error) {
     console.error("Error calling Gemini API:", error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 };
