@@ -25,7 +25,8 @@
   (function(){
     var app=document.getElementById('app');
     var defaults={status:'Not started',buyerName:'',buyerMobile:'',inviteSent:false,sellerKyc:false,buyerAccepted:false,buyerKyc:false,submitted:false,vehicleVerified:false};
-    var state={screen:'landing',authStep:'mobile',method:'dl',authRole:'seller',role:localStorage.getItem('rr-role')||'seller',active:'overview',selected:'ka01',detail:false,modal:null,transferStep:0,kycStep:0,toast:'',challanPaid:localStorage.getItem('rr-challan')==='true',challanStatus:localStorage.getItem('rr-challan-status')||'unpaid',transfer:load(),chatOpen:false,chatHistory:[{role:'bot',text:'Namaste! I am Parivahan Sahayak, your AI guide to Indian motor vehicle rules. How can I help you today?'}]};
+    var state={screen:'landing',authStep:'mobile',method:'dl',authRole:'seller',role:localStorage.getItem('rr-role')||'seller',active:'overview',selected:'ka01',detail:false,modal:null,transferStep:0,kycStep:0,toast:'',challanPaid:localStorage.getItem('rr-challan')==='true',challanStatus:localStorage.getItem('rr-challan-status')||'unpaid',transfer:load(),chatOpen:false,chatHistory:[{role:'bot',text:'Namaste! I am Parivahan Sahayak, your AI guide to Indian motor vehicle rules. How can I help you today?'}]
+    ,dlStep:0,dlEligibility:'valid',dlDaysPassed:42,dlForm5B:false,dlSlotDate:'18 Sep 2026',dlSlotTrack:'Track #2 (Electronic Sensor Track)',dlSlotTime:'10:30 AM - 11:30 AM',dlStatus:localStorage.getItem('rr-dl-status')||'none',dlNumber:'MH-12-2026-009842',speedPostTracking:'EM492817291IN'};
     window.state = state;
     var nocCleared = false;
     var hsrpBooked = false;
@@ -91,15 +92,21 @@
 }
     function nav(){
     var isApp = state.role === 'applicant';
+    var hasDL = state.dlStatus === 'dispatched';
+    
     var arr = isApp 
-        ? [['overview','⌂','Overview'], ['payments','₹','Payments & receipts']]
+        ? (hasDL 
+            ? [['overview','⌂','Overview'], ['license','👤','My License'], ['payments','₹','Payments & receipts']]
+            : [['overview','⌂','Overview'], ['payments','₹','Payments & receipts']])
         : [['overview','⌂','Overview'],['license','👤','My License'],['vehicles','▣','My vehicles'],['transfers','⇄','Transfers'],['payments','₹','Payments & challans']];
     
-    var disabledTabs = isApp 
+    var disabledTabs = (isApp && !hasDL) 
         ? '<div class="nav-label" style="margin-top:18px;opacity:0.6">Locked Services</div><button class="nav" style="opacity:0.4;cursor:not-allowed" onclick="alertToast(\'Service Locked\',\'Available after Permanent Driving License is issued.\')"><i>🔒</i>My License</button><button class="nav" style="opacity:0.4;cursor:not-allowed" onclick="alertToast(\'Service Locked\',\'Available after vehicle registration.\')"><i>🔒</i>My vehicles</button><button class="nav" style="opacity:0.4;cursor:not-allowed" onclick="alertToast(\'Service Locked\',\'Available after vehicle ownership.\')"><i>🔒</i>Transfers</button>' 
-        : '';
+        : (isApp && hasDL 
+            ? '<div class="nav-label" style="margin-top:18px;opacity:0.6">Vehicle Services</div><button class="nav" style="opacity:0.4;cursor:not-allowed" onclick="alertToast(\'No Vehicles Registered\',\'Add a vehicle to unlock registration and ownership transfers.\')"><i>🔒</i>My vehicles</button><button class="nav" style="opacity:0.4;cursor:not-allowed" onclick="alertToast(\'No Vehicles Registered\',\'Ownership transfers require registered vehicles.\')"><i>🔒</i>Transfers</button>'
+            : '');
 
-    return '<aside class="side"><div class="nav-label">Dashboard</div>'+arr.map(function(x){return '<button class="nav '+(state.active===x[0]?'active':'')+'" onclick="section(\''+x[0]+'\')"><i>'+x[1]+'</i>'+x[2]+'</button>'}).join('')+disabledTabs+'<div class="nav-label" style="margin-top:23px">Support</div><button class="nav" onclick="alertToast(\'Help centre\',\'Context-aware help for the selected vehicle would open here.\')"><i>?</i>Get help</button><div class="help" style="margin:20px 7px 18px"><b>Need a local-language guide?</b><p>Start a service in the language that feels most comfortable.</p><button class="link" onclick="alertToast(\'Language saved\',\'Kannada has been set as the support language.\')">Set language →</button></div><div style="margin-top:24px;padding:0 7px"><button onclick="localStorage.clear();location.reload()" style="width:100%;background:transparent;border:1px solid #cbd5e1;color:#64748b;padding:10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">↻ Reset Prototype</button></div></aside>';
+    return '<aside class="side"><div class="nav-label">Dashboard</div>'+arr.map(function(x){return '<button class="nav '+(state.active===x[0]?'active':'')+'" onclick="section(\''+x[0]+'\')"><i>'+x[1]+'</i>'+x[2]+'</button>'}).join('')+disabledTabs+'<div class="nav-label" style="margin-top:23px">Support</div><button class="nav" onclick="alertToast(\'Help centre\',\'Context-aware help for your license would open here.\')"><i>?</i>Get help</button><div class="help" style="margin:20px 7px 18px"><b>Need a local-language guide?</b><p>Start a service in the language that feels most comfortable.</p><button class="link" onclick="alertToast(\'Language saved\',\'Kannada has been set as the support language.\')">Set language →</button></div><div style="margin-top:24px;padding:0 7px"><button onclick="localStorage.clear();location.reload()" style="width:100%;background:transparent;border:1px solid #cbd5e1;color:#64748b;padding:10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">↻ Reset Prototype</button></div></aside>';
 }
     function header(){
     var buyer = state.role === 'buyer';
@@ -111,17 +118,79 @@
     function transferCard(){var t=state.transfer;if(t.status==='Not started')return '<section class="transfer"><div class="transfer-inner"><div class="transfer-head"><div><h2>Planning to sell this vehicle?</h2><p>Start a safer ownership transfer. We check readiness before you involve a buyer.</p></div><span class="transfer-status">Ready to start</span></div><div class="transfer-steps"><div class="transfer-step current">Readiness check</div><div class="transfer-step">Invite buyer</div><div class="transfer-step">Remote verification</div><div class="transfer-step">RTO review</div></div><button class="btn primary" onclick="openTransfer()">Start ownership transfer →</button></div></section>';var action='';if(state.role==='seller'&&!t.sellerKyc)action='<button class="btn primary" onclick="openKyc(\'seller\')">Complete seller video verification</button>';else if(state.role==='seller'&&!t.buyerAccepted)action='<button class="btn secondary" onclick="switchRole(\'buyer\')">Preview buyer dashboard</button>';else if(state.role==='buyer'&&!t.buyerAccepted)action='<button class="btn primary" onclick="openBuyerInvite()">Review & accept transfer</button>';else if(state.role==='buyer'&&!t.buyerKyc)action='<button class="btn primary" onclick="openKyc(\'buyer\')">Start your video verification</button>';else if(t.submitted)action='<button class="btn secondary" onclick="alertToast(\'Submission receipt\',\'Mock receipt TR-KA-43821 downloaded.\')">Download submission receipt</button>';else action='<button class="btn secondary" onclick="section(\'transfers\')">Open Transfer Room</button>';var msg=t.submitted?'<b>Submitted for Karnataka RTO review.</b> Both parties will be updated when the mock review is complete.':!t.buyerAccepted?'<b>Waiting for '+safe(t.buyerName||'the buyer')+'.</b> The secure invitation expires in 48 hours.':(!t.sellerKyc||!t.buyerKyc?'<b>Remote verification is pending.</b> Each party completes a short guided session.':'<b>Remote verification complete.</b> The application is ready for review.');function s(i){if(t.submitted)return 'done';if(i===0&&t.inviteSent)return 'done';if(i===1&&t.buyerAccepted)return 'done';if(i===2&&t.sellerKyc&&t.buyerKyc)return 'done';if((i===1&&t.inviteSent&&!t.buyerAccepted)||(i===2&&(!t.sellerKyc||!t.buyerKyc))||(i===3&&t.submitted))return 'current';return ''}return '<section class="transfer"><div class="transfer-inner"><div class="transfer-head"><div><h2>Transfer Room · '+car().reg+'</h2><p>Seller and buyer see the same status, with only their own tasks actionable.</p></div><span class="transfer-status">'+safe(t.status)+'</span></div><div class="transfer-steps"><div class="transfer-step '+s(0)+'">Seller initiated</div><div class="transfer-step '+s(1)+'">Buyer accepts</div><div class="transfer-step '+s(2)+'">Remote verification</div><div class="transfer-step '+s(3)+'">RTO review</div></div><div class="notice info">'+msg+'</div><div class="inline-actions" style="margin-top:14px">'+action+'<button class="btn quiet small" onclick="section(\'transfers\')">View timeline</button></div></div></section>'}
     function overview(){
     if(state.role === 'applicant') {
+        // State 4: Permanent DL Dispatched & Active
+        if(state.dlStatus === 'dispatched') {
+            return '<div class="section"><div class="intro"><div><h1>Welcome, Certified Driver</h1><p>Congratulations! Your Permanent Driving License (DL) is active and your Smart Card is in transit.</p></div></div>' +
+            '<div class="grid"><div class="stack">' +
+            '<div class="card pad" style="border-top:4px solid #138808;background:linear-gradient(135deg, #ffffff, #f0fdf4)">' +
+            '<div class="card-title"><div><span class="tag green" style="margin-bottom:8px;display:inline-block">✓ Permanent License Active</span><h2 style="font-size:20px;color:var(--navy)">Driving License: ' + state.dlNumber + '</h2><p>Official Digital Smart Driving License · Valid Pan-India</p></div></div>' +
+            '<div class="metrics" style="margin-top:16px"><div class="metric"><span>License Holder</span><b>Rohan Shah</b></div><div class="metric"><span>Authorized Classes</span><b>MCWG (Motorcycle with Gear), LMV (Car)</b></div><div class="metric"><span>Issuing Authority</span><b>RTO Pune (MH-12), Maharashtra</b></div><div class="metric"><span>Validity Period</span><b>18 Sep 2026 - 17 Sep 2046 (20 Years)</b></div><div class="metric"><span>Practical Test Score</span><b style="color:var(--green)">ADTT Automated Track: 100% Cleared</b></div></div>' +
+            '<div class="inline-actions" style="margin-top:20px"><button class="btn primary" onclick="downloadDocument(\'Permanent_DL_MH12.pdf\')">⬇ Download Digital DL (PDF)</button><button class="btn secondary" onclick="section(\'payments\')">View Payment Receipts</button></div>' +
+            '</div>' +
+            '<div class="card pad" style="border-left:4px solid #000080">' +
+            '<div class="card-title"><div><span class="tag blue" style="margin-bottom:6px;display:inline-block">📮 India Post Speed Post</span><h2 style="font-size:16px">Physical Smart Card Dispatched</h2><p>Consignment Number: <b>' + state.speedPostTracking + '</b></p></div></div>' +
+            '<div class="timeline" style="margin-top:14px">' +
+            '<div class="timeline-row"><i class="dot done"></i><div><b>Card Printed & Embossed</b><span>Government Security Press · Yesterday</span></div></div>' +
+            '<div class="timeline-row"><i class="dot done"></i><div><b>Dispatched via Speed Post</b><span>Pune National Sorting Hub · Today, 09:30 AM</span></div></div>' +
+            '<div class="timeline-row"><i class="dot pending"></i><div><b>Out for Delivery</b><span>Expected delivery in 2-3 business days</span></div></div>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="stack">' +
+            '<div class="card pad">' +
+            '<div class="card-title"><div><h2>Complete Licensing Journey</h2><p>From Zero to Licensed Driver</p></div></div>' +
+            '<div class="timeline" style="margin-top:14px">' +
+            '<div class="timeline-row"><i class="dot done"></i><div><b>1. Learner\'s License Issued</b><span>Theory test & e-KYC passed</span></div></div>' +
+            '<div class="timeline-row"><i class="dot done"></i><div><b>2. 30-Day Mandatory Practice</b><span>Completed CMVR practice</span></div></div>' +
+            '<div class="timeline-row"><i class="dot done"></i><div><b>3. ADTT Practical Track Test</b><span>Passed automated sensor track</span></div></div>' +
+            '<div class="timeline-row"><i class="dot done"></i><div><b>4. Permanent DL Issued</b><span>Digital & physical smart card</span></div></div>' +
+            '</div>' +
+            '</div>' +
+            '</div></div></div>';
+        }
+
+        // State 3: DL Slot Booked (Upcoming Practical Test)
+        if(state.dlStatus === 'slot_booked') {
+            return '<div class="section"><div class="intro"><div><h1>Driving Test Scheduled</h1><p>Your practical driving test appointment is confirmed at the RTO automated track.</p></div></div>' +
+            '<div class="grid"><div class="stack">' +
+            '<div class="card pad" style="border-top:4px solid #000080">' +
+            '<div class="card-title"><div><span class="tag blue" style="margin-bottom:8px;display:inline-block">📅 Appointment Confirmed</span><h2 style="font-size:20px;color:var(--navy)">RTO Practical Driving Test</h2><p>Application Ref: <b>RR-DL-8819</b> · Form 4 Filed</p></div></div>' +
+            '<div class="metrics" style="margin-top:16px"><div class="metric"><span>Appointment Date</span><b style="color:var(--navy);font-size:14px">' + state.dlSlotDate + '</b></div><div class="metric"><span>Time Slot</span><b>' + state.dlSlotTime + '</b></div><div class="metric"><span>Test Track Venue</span><b>RTO Automated Track, MH-12, ' + state.dlSlotTrack + '</b></div><div class="metric"><span>Vehicle Classes</span><b>MCWG & LMV (Bring your own vehicle / dual-control)</b></div><div class="metric"><span>Documents to Carry</span><b>Original Learner\'s License + Form 4 Appointment Slip</b></div></div>' +
+            '<div class="inline-actions" style="margin-top:20px"><button class="btn secondary" onclick="downloadDocument(\'DL_Appointment_Slip.pdf\')">⬇ Download Appointment Slip</button><button class="btn secondary" onclick="section(\'payments\')">View ₹700 Receipt</button></div>' +
+            '</div>' +
+            '<div class="card pad" style="background:#fffbf1;border:1px solid #f0deb8">' +
+            '<div class="card-title"><div><span class="tag amber" style="margin-bottom:6px;display:inline-block">Demo Simulator</span><h3 style="font-size:16px;color:#8c620d;margin:0">Simulate RTO Track Test Outcome</h3><p style="color:#78350f;font-size:12px;margin:3px 0 0">Click below to simulate passing the ADTT automated sensor track.</p></div></div>' +
+            '<button class="btn primary" style="margin-top:14px;background:#138808;border-color:#138808" onclick="simulateTestPassed()">✓ Simulate Driving Test Passed (Signoff & Dispatch) →</button>' +
+            '</div>' +
+            '</div>' +
+            '<div class="stack">' +
+            '<div class="card pad">' +
+            '<div class="card-title"><div><h2>Track Test Checklist</h2><p>Automated Sensor Track</p></div></div>' +
+            '<div class="checklist" style="margin-top:12px">' +
+            '<div class="checkrow"><div class="check">1</div><div><b>Parallel & Gradient Parking</b><span>Sensor-monitored stopping on incline without rollback</span></div></div>' +
+            '<div class="checkrow"><div class="check">2</div><div><b>Figure 8 & S-Track Navigation</b><span>Navigating forward & reverse within lane boundaries</span></div></div>' +
+            '<div class="checkrow"><div class="check">3</div><div><b>Emergency Braking & Signaling</b><span>Testing reflex and indicator compliance</span></div></div>' +
+            '</div>' +
+            '</div>' +
+            '</div></div></div>';
+        }
+
+        // State 2: LL Completed (Eligible to apply for Permanent DL)
         if(state.llComplete) {
-            return '<div class="section"><div class="intro"><div><h1>Welcome, New Driver</h1><p>Your Learner\'s License is active. Download your digital license or review test results.</p></div></div>' +
+            return '<div class="section"><div class="intro"><div><h1>Welcome, New Driver</h1><p>Your Learner\'s License is active. Download your digital license or apply for your Permanent Driving License.</p></div></div>' +
             '<div class="grid"><div class="stack">' +
             '<div class="card pad" style="border-top:4px solid #138808;background:linear-gradient(135deg, #ffffff, #f0fdf4)">' +
             '<div class="card-title"><div><span class="tag green" style="margin-bottom:8px;display:inline-block">✓ Active License</span><h2 style="font-size:20px;color:var(--navy)">Learner\'s License: ' + (state.llNumber || 'MH-12-LL-2026-004821') + '</h2><p>Valid across India for learning purposes under Motor Vehicles Act.</p></div></div>' +
-            '<div class="metrics" style="margin-top:16px"><div class="metric"><span>Applicant Name</span><b>Rohan Shah</b></div><div class="metric"><span>Issuing Authority</span><b>RTO ' + (state.llState || 'Maharashtra') + '</b></div><div class="metric"><span>Authorized Classes</span><b>MCWG (Two-Wheeler), LMV (Car)</b></div><div class="metric"><span>Validity Period</span><b>Today - 28 Feb 2027 (6 Months)</b></div><div class="metric"><span>Proctored Test Score</span><b style="color:var(--green)">Passed (3/3 Score)</b></div></div>' +
+            '<div class="metrics" style="margin-top:16px"><div class="metric"><span>Applicant Name</span><b>Rohan Shah</b></div><div class="metric"><span>Issuing Authority</span><b>RTO ' + (state.llState || 'Maharashtra') + '</b></div><div class="metric"><span>Authorized Classes</span><b>MCWG (Two-Wheeler), LMV (Car)</b></div><div class="metric"><span>Validity Period</span><b>Today - 28 Feb 2027 (6 Months)</b></div><div class="metric"><span>Proctored Test Score</span><b style="color:var(--green)">Passed (14/15 Score · 93%)</b></div></div>' +
             '<div class="inline-actions" style="margin-top:20px"><button class="btn primary" onclick="downloadDocument(\'Learners_License_MH12.pdf\')">⬇ Download Digital LL (PDF)</button><button class="btn secondary" onclick="section(\'payments\')">View Payment Receipt (₹350)</button></div>' +
             '</div>' +
-            '<div class="card pad">' +
-            '<div class="card-title"><div><h2>Next Step: Permanent Driving License (DL)</h2><p>Regulations under Central Motor Vehicles Rules (CMVR).</p></div></div>' +
-            '<div class="notice info" style="margin-top:12px"><b>30-Day Mandatory Practice Window</b><br>You can apply for your permanent Driving License test after 30 days of Learner\'s License issuance and before 180 days.</div>' +
+            '<div class="card pad" style="border-top:4px solid var(--blue)">' +
+            '<div class="card-title"><div><span class="tag blue" style="margin-bottom:8px;display:inline-block">Next Phase: Permanent License</span><h2 style="font-size:18px">Apply for Permanent Driving License (DL)</h2><p>Under Section 14 CMVR, you can apply after 30 days of holding your LL.</p></div></div>' +
+            '<div class="notice info" style="margin-top:14px"><b>30-Day Mandatory Practice Window</b><br>As per law, minimum 30 days of road practice is required before taking the practical driving test. The LL is valid for 180 days (6 months).</div>' +
+            '<div class="inline-actions" style="margin-top:18px">' +
+            '<button class="btn primary" style="height:44px" onclick="openDLApply()">⏩ Fast-Forward 30 Days & Apply for DL →</button>' +
+            '<button class="btn secondary" style="height:44px" onclick="remind30Days()">🔔 Remind Me After 30 Days</button>' +
+            '</div>' +
             '</div>' +
             '</div>' +
             '<div class="stack">' +
@@ -132,14 +201,14 @@
             '<div class="timeline-row"><i class="dot done"></i><div><b>2. DigiLocker Fetch</b><span>Age & Address proofs verified</span></div></div>' +
             '<div class="timeline-row"><i class="dot done"></i><div><b>3. Digital Signature</b><span>Signed electronically</span></div></div>' +
             '<div class="timeline-row"><i class="dot done"></i><div><b>4. Fee Payment</b><span>₹350 paid securely</span></div></div>' +
-            '<div class="timeline-row"><i class="dot done"></i><div><b>5. AI-Proctored Test</b><span>Road safety quiz passed</span></div></div>' +
+            '<div class="timeline-row"><i class="dot done"></i><div><b>5. AI-Proctored Test</b><span>Road safety quiz passed (14/15)</span></div></div>' +
             '<div class="timeline-row"><i class="dot done"></i><div><b>6. License Issued</b><span>Smart digital copy ready</span></div></div>' +
             '</div>' +
             '</div>' +
             '</div></div></div>';
         }
 
-        // Applicant before completion: Stepwise Tracker
+        // State 1: LL Application In Progress (Pre-completion Tracker)
         var step = state.llStep || 0;
         var s1 = step >= 2 ? 'done' : 'pending';
         var s2 = (state.llDocs >= 2) ? 'done' : (step >= 2 ? 'pending' : '');
@@ -180,13 +249,23 @@
     function payments() {
     var isApp = state.role === 'applicant';
     if(isApp) {
-        var llPaymentHTML = state.llComplete || (state.llStep >= 5) 
-            ? '<div class="attention-row"><div class="attention-icon green" style="font-size:16px">✓</div><div><b>Learner\'s License Application Fee (MCWG + LMV)</b><span>Today · ₹350 · RR-LL-4821</span></div><button class="link" onclick="downloadDocument(\'RR-LL-4821_Receipt.pdf\')">Download Receipt</button></div>'
+        var appPayments = [];
+        if(state.dlStatus === 'slot_booked' || state.dlStatus === 'dispatched') {
+            appPayments.push({title: "Permanent Driving License Application (MCWG + LMV)", amount: 700, date: "Today", id: "RR-DL-8819"});
+        }
+        if(state.llComplete || (state.llStep >= 5)) {
+            appPayments.push({title: "Learner's License Application Fee (MCWG + LMV)", amount: 350, date: "Today", id: "RR-LL-4821"});
+        }
+
+        var llPaymentHTML = appPayments.length > 0
+            ? appPayments.map(function(p) {
+                return '<div class="attention-row"><div class="attention-icon green" style="font-size:16px">✓</div><div><b>' + p.title + '</b><span>' + p.date + ' · ₹' + p.amount + ' · ' + p.id + '</span></div><button class="link" onclick="downloadDocument(\''+p.id+'_Receipt.pdf\')">Download Receipt</button></div>';
+            }).join('')
             : '<div class="empty" style="padding:24px;text-align:center"><i style="font-size:28px;font-style:normal">💳</i><b style="display:block;margin-top:6px;font-size:14px;color:var(--navy)">No Transactions Yet</b><p style="font-size:12px;color:#64748b;margin-top:4px">Your application fee payment receipt will appear here automatically after payment.</p></div>';
 
         return '<div class="section"><div class="intro"><div><h1>Payments & Receipts</h1><p>View transaction history and download official fee receipts for your license application.</p></div></div>' +
         '<div class="grid"><div class="stack">' +
-        '<section class="card pad"><div class="card-title"><div><h2>Application Fees & Receipts</h2><p>Official Parivahan receipts (Form 3 acknowledge).</p></div></div>' +
+        '<section class="card pad"><div class="card-title"><div><h2>Application Fees & Receipts</h2><p>Official Parivahan receipts (Form 3 & Form 4 acknowledgements).</p></div></div>' +
         '<div class="attention" style="margin-top:14px">' + llPaymentHTML + '</div></section>' +
         '</div></div></div>';
     }
@@ -222,6 +301,65 @@
     '<div class="attention">' + historyHTML + '</div></section>' +
     '</div></div></div>';
 }
+
+
+window.openDLApply = function() {
+    state.modal = 'dl-apply';
+    state.dlStep = 0;
+    state.dlEligibility = 'valid';
+    state.dlDaysPassed = 42;
+    state.dlForm5B = false;
+    render();
+};
+window.setDLEligibility = function(type) {
+    state.dlEligibility = type;
+    if(type === 'valid') state.dlDaysPassed = 42;
+    else if(type === 'early') state.dlDaysPassed = 14;
+    else if(type === 'expired') state.dlDaysPassed = 195;
+    render();
+};
+window.dlNext = function() {
+    state.dlStep++;
+    render();
+};
+window.dlPrev = function() {
+    state.dlStep = Math.max(0, state.dlStep - 1);
+    render();
+};
+window.toggleForm5B = function(val) {
+    state.dlForm5B = val;
+    render();
+};
+window.selectSlotDate = function(d) {
+    state.dlSlotDate = d;
+    render();
+};
+window.selectSlotTime = function(t) {
+    state.dlSlotTime = t;
+    render();
+};
+window.selectSlotTrack = function(tr) {
+    state.dlSlotTrack = tr;
+    render();
+};
+window.payDLFee = function() {
+    state.dlStatus = 'slot_booked';
+    localStorage.setItem('rr-dl-status', 'slot_booked');
+    recordPayment("Permanent Driving License Application (MCWG + LMV)", 700);
+    state.dlStep = 5;
+    save();
+    render();
+};
+window.simulateTestPassed = function() {
+    state.dlStatus = 'dispatched';
+    localStorage.setItem('rr-dl-status', 'dispatched');
+    save();
+    alertToast('Driving Test Passed!', 'RTO officer signed off. Smart Card is dispatched via India Post.');
+    render();
+};
+window.remind30Days = function() {
+    alertToast('Reminder Scheduled', 'You will receive an SMS & Email notification when your 30-day practice window completes.');
+};
 
 window.openLLApply = function() { 
     state.modal = 'll-apply'; 
@@ -438,7 +576,132 @@ function llModal() {
     return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Apply for Learner\'s License</h2><p>Zero to Driver Faceless Workflow</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">'+head+body+'</div><footer class="modal-foot">'+foot+'</footer></section></div>';
 }
 
-function modal(){if(!state.modal)return '';if(state.modal==='ll-apply') return llModal();
+function modal(){if(!state.modal)return '';if(state.modal==='ll-apply') return llModal();if(state.modal==='dl-apply') return dlApplyModal();
+function dlApplyModal() {
+    var step = state.dlStep || 0;
+    var head = '<div class="stepper" style="grid-template-columns:repeat(5,1fr);margin-bottom:24px"><div class="step '+(step===0?'active':(step>0?'done':''))+'">1. Eligibility</div><div class="step '+(step===1?'active':(step>1?'done':''))+'">2. Details</div><div class="step '+(step===2?'active':(step>2?'done':''))+'">3. Form 5B</div><div class="step '+(step===3?'active':(step>3?'done':''))+'">4. Slot Booking</div><div class="step '+(step>=4?'active':'')+'">5. Fee & Done</div></div>';
+    var body = '', foot = '';
+
+    if (step === 0) {
+        var elig = state.dlEligibility || 'valid';
+        var days = state.dlDaysPassed || 42;
+        var statusBadge = elig === 'valid'
+            ? '<span class="tag green" style="font-size:12px;padding:6px 12px">✓ Eligible (' + days + ' days since LL issuance)</span>'
+            : (elig === 'early' 
+                ? '<span class="tag amber" style="font-size:12px;padding:6px 12px">⚠ Ineligible: Too Early (' + days + ' / 30 Days)</span>'
+                : '<span class="tag red" style="font-size:12px;padding:6px 12px">✕ Ineligible: LL Expired (' + days + ' / 180 Days)</span>');
+
+        var noticeHtml = elig === 'valid'
+            ? '<div class="notice success" style="margin-top:15px"><b>Statutory Criteria Met (CMVR Rule 14)</b><br>Your Learner\'s License has crossed the mandatory 30-day practice period and is within the 180-day validity window.</div>'
+            : (elig === 'early'
+                ? '<div class="notice warning" style="margin-top:15px"><b>Mandatory 30-Day Window Required</b><br>Under Section 14 of CMVR, an applicant must hold a Learner\'s License for at least 30 days to practice driving before being eligible for the practical test track.</div>'
+                : '<div class="notice warning" style="margin-top:15px;border-color:#fca5a5;background:#fef2f2;color:#991b1b"><b>Learner\'s License Has Expired</b><br>Under Section 14 of CMVR, a Learner\'s License is strictly valid for 180 days (6 months). Since 195 days have elapsed, you must renew your LL or re-apply.</div>');
+
+        body = '<div class="field"><label>Active Learner\'s License Number</label><input class="input" value="' + (state.llNumber || 'MH-12-LL-2026-004821') + '" readonly style="background:#f8fafc;font-weight:700;letter-spacing:1px"></div>' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding:12px 14px;border:1px solid #dce5ef;border-radius:10px;background:#fff">' +
+        '<div><b style="font-size:13px;display:block;color:var(--navy)">Eligibility Verification</b><span style="font-size:11px;color:var(--muted)">Checking 30-day minimum & 180-day maximum validity</span></div>' +
+        statusBadge +
+        '</div>' +
+        noticeHtml +
+        '<div style="margin-top:20px;padding:12px;background:#f1f5f9;border-radius:8px">' +
+        '<small style="font-weight:700;color:var(--navy);display:block;margin-bottom:6px">⚙ Demo Simulation Controls:</small>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        '<button class="btn secondary small" style="background:'+(elig==='valid'?'#dcfce7':'#fff')+'" onclick="setDLEligibility(\'valid\')">Standard Case (42 Days · Valid)</button>' +
+        '<button class="btn secondary small" style="background:'+(elig==='early'?'#fef3c7':'#fff')+'" onclick="setDLEligibility(\'early\')">Test Edge-Case: Too Early (14 Days)</button>' +
+        '<button class="btn secondary small" style="background:'+(elig==='expired'?'#fee2e2':'#fff')+'" onclick="setDLEligibility(\'expired\')">Test Edge-Case: Expired (195 Days)</button>' +
+        '</div></div>';
+
+        foot = '<button class="btn secondary" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn primary" ' + (elig === 'valid' ? '' : 'disabled') + ' onclick="dlNext()">Verify & Continue →</button>';
+    } else if (step === 1) {
+        body = '<div class="notice info" style="margin-bottom:15px"><b>Details Pulled from LL & Aadhaar e-KYC</b><br>Please confirm your details and delivery address for the physical Smart Driving License card.</div>' +
+        '<div class="metrics">' +
+        '<div class="metric"><span>Applicant Name</span><b>Rohan Shah</b></div>' +
+        '<div class="metric"><span>Date of Birth / Gender</span><b>14/08/2003 · Male</b></div>' +
+        '<div class="metric"><span>Vehicle Classes</span><b>Motorcycle with Gear (MCWG), Light Motor Vehicle (LMV)</b></div>' +
+        '<div class="metric"><span>Issuing Authority</span><b>RTO Pune (MH-12), Maharashtra</b></div>' +
+        '</div>' +
+        '<div class="field" style="margin-top:18px"><label>Permanent Delivery Address for Smart Card (Speed Post)</label><textarea class="input" style="height:65px;padding:8px 12px;font-size:13px;line-height:1.4">Flat 402, Green Meadows, Senapati Bapat Road, Pune, Maharashtra - 411016</textarea><p style="font-size:11px;color:var(--muted);margin-top:4px">Physical Smart Card with QR code will be dispatched here via India Post.</p></div>';
+
+        foot = '<button class="btn secondary" onclick="dlPrev()">Back</button><button class="btn primary" onclick="dlNext()">Confirm Address & Details →</button>';
+    } else if (step === 2) {
+        var f5b = state.dlForm5B || false;
+        body = '<div class="notice info" style="margin-bottom:15px"><b>Driver Training Certificate (Form 5B Exemption)</b><br>Under MoRTH Notification G.S.R. 394(E), candidates graduating from an <b>Accredited Driver Training Centre (ADTC)</b> holding <b>Form 5B</b> are exempted from the RTO practical driving test track.</div>' +
+        '<div style="padding:16px;border:1px solid #dce5ef;border-radius:10px;background:#fff;margin-top:14px">' +
+        '<label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;margin:0">' +
+        '<input type="checkbox" '+(f5b?'checked':'')+' onchange="toggleForm5B(this.checked)" style="margin-top:3px;width:18px;height:18px">' +
+        '<div><b style="font-size:14px;color:var(--navy)">I have an ADTC Form 5B Certificate (Exempt practical test)</b>' +
+        '<p style="font-size:12px;color:#64748b;margin:4px 0 0">Note: Regular driving schools issue standard Form 5 which still requires the RTO test track. Only accredited ADTC centres with biometric attendance qualify for Form 5B test exemption.</p>' +
+        '</div></label>' +
+        '</div>' +
+        (f5b 
+            ? '<div style="margin-top:14px;padding:14px;border:1px dashed #138808;background:#f0fdf4;border-radius:10px;display:flex;align-items:center;justify-content:space-between"><div><b style="color:#15803d;font-size:13px">✓ Form 5B Verified: Maruti Suzuki ADTC Pune</b><span style="display:block;font-size:11px;color:#64748b">Accreditation ID: ADTC-MH-04281 · 29 Hours Simulator & Road Training</span></div><span class="tag green">RTO Test Waived</span></div>' 
+            : '<div style="margin-top:14px;padding:14px;border:1px solid #cbd5e1;background:#f8fafc;border-radius:10px"><b style="font-size:13px;color:var(--navy)">Standard Route Selected (RTO Automated Driving Test Track)</b><p style="font-size:12px;color:#64748b;margin:4px 0 0">You will book a test appointment at the RTO automated sensor track in the next step.</p></div>');
+
+        foot = '<button class="btn secondary" onclick="dlPrev()">Back</button><button class="btn primary" onclick="dlNext()">Continue to '+(f5b?'Fee Payment':'Slot Booking')+' →</button>';
+    } else if (step === 3) {
+        if(state.dlForm5B) {
+            body = '<div class="notice success" style="margin-bottom:15px"><b>RTO Practical Test Waived</b><br>Since you hold a verified Form 5B from an Accredited Driver Training Centre, you do not need to book an RTO track slot. Your license will be directly processed after fee payment.</div>';
+            foot = '<button class="btn secondary" onclick="dlPrev()">Back</button><button class="btn primary" onclick="dlNext()">Proceed to Fee Payment →</button>';
+        } else {
+            var dates = ['18 Sep 2026', '19 Sep 2026', '22 Sep 2026', '23 Sep 2026'];
+            var times = ['09:30 AM - 10:30 AM', '10:30 AM - 11:30 AM', '02:00 PM - 03:00 PM', '03:30 PM - 04:30 PM'];
+            
+            var dateChips = dates.map(function(d){
+                return '<button class="btn small '+(state.dlSlotDate===d?'primary':'secondary')+'" onclick="selectSlotDate(\''+d+'\')">'+d+'</button>';
+            }).join(' ');
+
+            var timeChips = times.map(function(t){
+                return '<button class="btn small '+(state.dlSlotTime===t?'primary':'secondary')+'" onclick="selectSlotTime(\''+t+'\')">'+t+'</button>';
+            }).join(' ');
+
+            body = '<div class="notice info" style="margin-bottom:15px"><b>Book RTO Automated Driving Test Track (ADTT) Slot</b><br>Pick your convenient date, track, and time slot at RTO Pune.</div>' +
+            '<div class="field"><label>1. Select RTO Automated Track Facility</label>' +
+            '<select class="input" onchange="selectSlotTrack(this.value)">' +
+            '<option value="Track #2 (Electronic Sensor Track)" '+(state.dlSlotTrack.includes('Track #2')?'selected':'')+'>RTO Pune ADTT - Track #2 (Electronic Sensor Track, Alandi Road)</option>' +
+            '<option value="Track #1 (Automated Camera Track)" '+(state.dlSlotTrack.includes('Track #1')?'selected':'')+'>RTO Pune ADTT - Track #1 (High-Speed Overhead Camera Track)</option>' +
+            '</select></div>' +
+            '<div class="field" style="margin-top:14px"><label>2. Select Test Date</label><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">' + dateChips + '</div></div>' +
+            '<div class="field" style="margin-top:14px"><label>3. Select Time Window</label><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">' + timeChips + '</div></div>' +
+            '<div style="margin-top:16px;padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;display:flex;align-items:center;gap:10px">' +
+            '<div style="font-size:20px">📍</div>' +
+            '<div><b style="font-size:13px;color:#166534">Selected Slot: ' + state.dlSlotDate + ' · ' + state.dlSlotTime + '</b><span style="display:block;font-size:11px;color:#64748b">' + state.dlSlotTrack + '</span></div>' +
+            '</div>';
+
+            foot = '<button class="btn secondary" onclick="dlPrev()">Back</button><button class="btn primary" onclick="dlNext()">Confirm Slot & Proceed to Pay →</button>';
+        }
+    } else if (step === 4) {
+        var testFee = state.dlForm5B ? 0 : 300;
+        var totalFee = 200 + testFee + 200;
+        
+        body = '<div class="notice info" style="margin-bottom:15px"><b>Combined Driving License Fee Schedule</b><br>Unified fee payment covering application filing, test track operations, and physical smart card speed-post delivery.</div>' +
+        '<div class="metrics">' +
+        '<div class="metric"><span>Issue of Driving License (Form 7 Smart Card)</span><b>₹200</b></div>' +
+        (state.dlForm5B ? '<div class="metric"><span>RTO Test Fee (Form 5B Exemption)</span><b style="color:var(--green)">Waived (₹0)</b></div>' : '<div class="metric"><span>ADTT Automated Driving Test Fee</span><b>₹300</b></div>') +
+        '<div class="metric"><span>Smart Card Embossing & India Post Speed Delivery</span><b>₹200</b></div>' +
+        '<div class="metric"><span style="font-weight:700;color:var(--navy)">Total Government Due</span><b style="font-size:17px;color:var(--navy)">₹' + totalFee + '</b></div>' +
+        '</div>' +
+        '<div style="margin-top:16px;padding:12px;background:#f8fafc;border:1px solid #dce5ef;border-radius:8px;font-size:12px;color:#64748b">' +
+        '🔒 Secure 256-bit encrypted gateway. Digital Bharat Bill Payment System (BBPS) receipt will be issued immediately.' +
+        '</div>';
+
+        foot = '<button class="btn secondary" onclick="dlPrev()">Back</button><button class="btn primary" onclick="payDLFee()">Pay ₹' + totalFee + ' & Confirm Booking →</button>';
+    } else if (step === 5) {
+        body = '<div class="success-box" style="background:#f0fdf4;color:#166534">' +
+        '<i style="background:#dcfce7;color:#15803d;font-size:26px;display:grid;place-items:center;width:50px;height:50px;margin:0 auto 12px;border-radius:50%;font-style:normal">🎉</i>' +
+        '<h3 style="font-size:18px">Application Submitted & Slot Confirmed!</h3>' +
+        '<p style="font-size:13px;margin-top:4px">Application Reference: <b>RR-DL-8819</b> · Payment of ₹700 completed.</p>' +
+        '</div>' +
+        '<div class="attention" style="margin-top:16px">' +
+        '<div class="attention-row"><div class="attention-icon blue" style="font-size:16px">📅</div><div><b>Driving Test: ' + state.dlSlotDate + ' (' + state.dlSlotTime + ')</b><span>RTO Pune Automated Track · Form 4 Appointment Slip Generated</span></div><button class="link" onclick="downloadDocument(\'DL_Appointment_Slip.pdf\')">Download Slip</button></div>' +
+        '</div>';
+
+        foot = '<button class="btn primary" onclick="closeModal()">Return to Dashboard</button>';
+    }
+
+    return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Permanent Driving License (DL)</h2><p>Class of Vehicles: MCWG, LMV</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">'+head+body+'</div><footer class="modal-foot">'+foot+'</footer></section></div>';
+}
+
 if(state.modal==='challan')return challanModal();if(state.modal==='transfer')return transferModal();if(state.modal==='duplicate-rc')return duplicateRcModal();if(state.modal==='kyc-seller'||state.modal==='kyc-buyer')return kycModal();if(state.modal==='buyer-invite')return buyerInviteModal();if(state.modal==='vehicle-verify')return vehicleVerifyModal();if(state.modal==='hsrp')return hsrpModal();if(state.modal==='noc')return nocModal();if(state.modal==='change-details')return changeDetailsModal();if(state.modal==='change-details-done')return changeDetailsDoneModal();if(state.modal==='fancy-number')return fancyNumberModal();if(state.modal==='mobile-change')return mobileChangeModal();if(state.modal==='name-change')return nameChangeModal();if(state.modal==='idp')return idpModal();if(state.modal==='renew-dl')return renewDlModal();if(state.modal==='address-change')return addressChangeModal();if(state.modal==='duplicate-dl')return duplicateDlModal();if(state.modal==='document')return documentModal();return successModal()}
     function challanModal(){var step=state.challanStep||0,body='',foot='';if(step===0){body='<div style="background:#e2e8f0;height:140px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#64748b;margin-bottom:15px;position:relative;overflow:hidden;"><i style="font-size:32px;z-index:2;font-style:normal">📷</i><div style="position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,0.6);color:white;padding:2px 6px;font-size:11px;border-radius:4px;z-index:2">KA 01 MT 4582 · 82 km/h</div><div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(0,0,0,0.03) 10px,rgba(0,0,0,0.03) 20px);"></div></div><div class="notice '+(state.challanStatus==='disputed'?'info':'warning')+'"><b>Speed-limit violation</b><br>KA-EC-72831 · Issued 12 Aug 2026 · Bengaluru Traffic Police</div><div class="metrics" style="margin-top:18px"><div class="metric"><span>Location</span><b>Outer Ring Road, Bellandur</b></div><div class="metric"><span>Time</span><b>12 Aug 2026, 14:32 IST</b></div><div class="metric"><span>Amount due</span><b>₹500</b></div><div class="metric"><span>Status</span><b style="color:'+(state.challanStatus==='disputed'?'#b45309':'#e11d48')+'">'+(state.challanStatus==='disputed'?'Under Dispute':'Unpaid')+'</b></div></div>';foot=state.challanStatus==='disputed'?'<button class="btn secondary" onclick="closeModal()">Close</button>':'<button class="btn secondary" onclick="contestChallan()">Contest Challan</button><button class="btn primary" onclick="payChallan()">Pay ₹500 securely</button>'}else{body='<div class="notice info"><b>Contest this challan</b><br>Submit your dispute to the Virtual Traffic Court.</div><div class="field" style="margin-top:15px"><label>Reason for contest</label><select class="input"><option>Not my vehicle (cloned plate)</option><option>I was not the driver</option><option>Medical emergency</option><option>Exempted vehicle</option><option>Defective camera/equipment</option><option>Other</option></select></div><div class="field"><label>Describe your situation</label><textarea class="input" rows="3" placeholder="Provide details about why this challan is incorrect..."></textarea></div><div class="field"><label>Supporting Document (Optional)</label><div style="border: 2px dashed #cbd5e1; padding: 12px; text-align: center; border-radius: 8px; color: #64748b; cursor: pointer;" onclick="alertToast(\'Upload dialog\',\'Mock file picker opened.\')"><i style="font-style:normal">📎</i> Tap to attach proof (e.g. hospital bill, GPS log)</div></div>';foot='<button class="btn secondary" onclick="openChallan()">Back</button><button class="btn primary" onclick="submitContest()">Submit Dispute</button>'}return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Challan details</h2><p>KA-EC-72831</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">'+body+'</div><footer class="modal-foot">'+foot+'</footer></section></div>'}
     function transferModal(){var step=state.transferStep,c=car(),head='<div class="stepper"><div class="step '+(step===0?'active':'done')+'">1 · Readiness</div><div class="step '+(step===1?'active':step>1?'done':'')+'">2 · Buyer</div><div class="step '+(step===2?'active':'')+'">3 · Send invite</div></div>',body='',foot='';if(step===0){var carSelect='<div class="field"><label>Select Vehicle to Transfer</label><select class="input" onchange="state.selected=this.value;render()">'+vehicles.map(function(v){return '<option value="'+v.id+'" '+(v.id===state.selected?'selected':'')+'>'+v.name+' · '+v.reg+'</option>'}).join('')+'</select></div>';var challanPaid=c.id==='ka01'?state.challanPaid:true;body=carSelect+'<div class="notice info"><b>'+c.state+' mock route:</b> Remote identity verification is available. Final approval remains an RTO decision.</div><div class="checklist" style="margin-top:15px"><div class="checkrow"><div class="check">✓</div><div><b>Registered owner verified</b><span>Vehicle belongs to signed-in seller.</span></div></div><div class="checkrow '+(challanPaid?'':'warn')+'"><div class="check">'+(challanPaid?'✓':'!')+'</div><div><b>'+(challanPaid?'No outstanding challan':'One challan needs attention')+'</b><span>'+(challanPaid?'You can continue with transfer.':'Transfer can be drafted, but must be paid before submission.')+'</span></div></div><div class="checkrow '+(c.id==='ka01'&&!nocCleared?'warn':'')+'"><div class="check">'+(c.id==='ka01'&&!nocCleared?'!':'✓')+'</div><div><b>'+(c.id==='ka01'&&!nocCleared?'Active Bank Loan (NOC Required)':'Loan status clear')+'</b><span>'+(c.id==='ka01'&&!nocCleared?'Digital NOC from HDFC Bank is required to proceed.':'No active hypothecation blocking transfer.')+'</span></div></div><div class="checkrow"><div class="check">✓</div><div><b>Documents pre-checked</b><span>RC, insurance and PUC are in document wallet.</span></div></div></div>';if(c.id==='ka01'&&!nocCleared){foot='<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="openNoc()">Request Digital NOC</button>'}else{foot='<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="nextTransfer()">Continue to buyer →</button>'}}else if(step===1){body='<div class="form-grid"><div class="field full"><label for="buyer-name">Buyer full name</label><input class="input" id="buyer-name" value="'+safe(state.transfer.buyerName||'')+'" placeholder="e.g. Rohan Shah"></div><div class="field"><label for="buyer-mobile">Buyer mobile number</label><input class="input" id="buyer-mobile" value="'+safe(state.transfer.buyerMobile||'')+'" inputmode="numeric" placeholder="e.g. 98 7654 3210"></div><div class="field"><label for="buyer-state">Buyer residence state</label><select class="input" id="buyer-state"><option>Karnataka</option><option>Tamil Nadu</option><option>Maharashtra</option></select></div></div><div class="notice info"><b>What the buyer sees:</b> a secure invitation, this vehicle snapshot and only the actions they need to complete.</div>';foot='<button class="btn secondary" onclick="prevTransfer()">Back</button><button class="btn primary" onclick="nextTransfer()">Review invite →</button>'}else{body='<div class="notice success"><b>Ready to send securely.</b> The buyer is invited to their own dashboard—there is no shared password or public document link.</div><div class="metrics" style="margin-top:17px"><div class="metric"><span>Vehicle</span><b>'+c.name+' · '+c.reg+'</b></div><div class="metric"><span>Buyer</span><b>'+safe(state.transfer.buyerName||'Rohan Shah')+'</b></div><div class="metric"><span>Invite expiry</span><b>48 hours</b></div><div class="metric"><span>Next seller task</span><b>Video verification</b></div></div>';foot='<button class="btn secondary" onclick="prevTransfer()">Back</button><button class="btn primary" onclick="sendInvite()">Send buyer invite</button>'}return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Start ownership transfer</h2><p>'+c.name+' · '+c.reg+'</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">'+head+body+'</div><footer class="modal-foot">'+foot+'</footer></section></div>'}
@@ -474,14 +737,16 @@ if(state.modal==='challan')return challanModal();if(state.modal==='transfer')ret
 
     function buyerInviteModal(){return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Transfer Request Received</h2><p>From: Ananya Rao</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body"><div class="notice info"><b>You have received a request to accept ownership of a vehicle.</b></div><div class="metrics" style="margin-top:17px"><div class="metric"><span>Vehicle</span><b>Hyundai Creta · KA 01 MT 4582</b></div><div class="metric"><span>Seller</span><b>Ananya Rao</b></div><div class="metric"><span>Government transfer fee</span><b>Mock estimate: ₹300 + charges</b></div></div><p style="margin-top: 15px; font-size: 13px; color: #526681;">Please review the details. You can accept the request to proceed with remote verification, or reject it if you do not recognize this transaction.</p></div><footer class="modal-foot"><button class="btn secondary" onclick="rejectTransfer()">Reject</button><button class="btn primary" onclick="buyerAccept()">Accept & Proceed</button></footer></section></div>'}
     
-    function myLicense(){var addr=state.dlAddress||'#42, 3rd Cross, Indiranagar, Bengaluru, 560038';return '<div class="section"><div class="intro"><div><h1>My Driving License</h1><p>Manage your DL, endorsements, and personal details.</p></div></div><div class="grid"><div class="stack"><section class="card pad"><div class="card-title"><div><h2>DL: KA-01-2015-XXXXX <span style="font-size:12px;background:#f1f5f9;color:#475569;padding:4px 8px;border-radius:12px;vertical-align:middle;margin-left:8px;font-weight:600;cursor:pointer" onclick="alertToast(\'Smart Routing\',\'State auto-detected from DL prefix (KA).\')">📍 Karnataka Rules Applied</span></h2><p>Active · Valid till 14 Aug 2035</p></div><span class="transfer-status" style="background:#d8f0e7;color:#1b8067">Active</span></div><div class="metrics" style="margin-top:15px"><div class="metric"><span>Name</span><b>'+(state.role==='buyer'?'Rohan Shah':'Ananya Rao')+'</b></div><div class="metric"><span>Blood Group</span><b>O+</b></div><div class="metric" style="grid-column:1/-1"><span>Registered Address</span><b style="line-height:1.4">'+addr+'</b></div></div><div class="attention" style="margin-top:15px"><div class="attention-row"><div class="attention-icon blue">✓</div><div><b>LMV (Light Motor Vehicle)</b><span>Car, Jeep, Taxi</span></div></div><div class="attention-row"><div class="attention-icon blue">✓</div><div><b>MCWG (Motorcycle with Gear)</b><span>Two-wheelers</span></div></div></div></section></div><div class="stack"><section class="card pad"><div class="card-title"><div><h2>License Services</h2><p>Digital-first updates.</p></div></div><div class="checklist"><div class="checkrow" style="cursor:pointer" onclick="openChangeDetails()"><div class="check" style="background:#e4edf8;color:#2860a4"><i>✎</i></div><div><b>Change DL Details</b><span>Update your address, mobile number, or name.</span></div></div><div class="checkrow" style="cursor:pointer" onclick="openDuplicateDl()"><div class="check" style="background:#e4edf8;color:#2860a4"><i>▤</i></div><div><b>Apply for Duplicate DL</b><span>Lost or stolen? Order a replacement smart card.</span></div></div><div class="checkrow" style="cursor:pointer" onclick="openIdp()"><div class="check" style="background:#e4edf8;color:#2860a4"><i>✈️</i></div><div><b>International Driving Permit</b><span>Apply for an IDP to drive outside India.</span></div></div><div class="checkrow" style="cursor:pointer" onclick="openRenewDl()"><div class="check" style="background:#e4edf8;color:#2860a4"><i>↻</i></div><div><b>Renew Driving License</b><span>Renew your expiring DL online.</span></div></div></div></section></div></div></div>'}
-    
-    
-    function idpModal(){var step=state.idpStep||0,body='',foot='';if(step===0){body='<div class="notice info"><b>International Driving Permit (IDP)</b><br>Valid for 1 year from the date of issue. Must be accompanied by your original Indian DL.</div><div class="field" style="margin-top:15px"><label>Passport Number</label><input class="input" placeholder="e.g. Z1234567"></div><div class="field"><label>Country to be visited</label><select class="input"><option>United States of America</option><option>United Kingdom</option><option>United Arab Emirates</option><option>Australia</option><option>Canada</option></select></div><div class="field"><label>Visa Details (Optional if Visa on arrival)</label><input class="input" placeholder="Visa Number"></div>';foot='<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="nextIdp()">Verify & Proceed →</button>'}else{body='<div class="metrics"><div class="metric"><span>IDP Issue Fee</span><b>₹1000</b></div><div class="metric"><span>Total Due</span><b style="color:var(--navy);font-size:15px">₹1000</b></div></div><div class="notice success" style="margin-top:15px">Payment will be processed securely.</div>';foot='<button class="btn secondary" onclick="prevIdp()">Back</button><button class="btn primary" onclick="payIdp()">Pay ₹1000 securely</button>'}return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Apply for IDP</h2><p>KA-01-2015-XXXXX</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">'+body+'</div><footer class="modal-foot">'+foot+'</footer></section></div>'}
-    function renewDlModal(){var step=state.renewStep||0,body='',foot='';if(step===0){body='<div class="notice info"><b>DL Renewal - Medical Certificate</b><br>For applicants above 40 years, Form 1A is required. We can fetch your digital fitness certificate via the Ayushman Bharat Digital Mission (ABDM).</div><div class="field" style="margin-top:15px"><label>Doctor\'s Registration Number</label><input class="input" placeholder="e.g. KMC-12345"></div>';foot='<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="fetchMedical()">Fetch Form 1A →</button>'}else if(step===1){body='<div style="text-align:center;padding:40px 20px"><div style="width:48px;height:48px;border:4px solid #f1f5f9;border-top-color:var(--blue);border-radius:50%;margin:0 auto 20px;animation:spin 1s linear infinite"></div><h3 style="color:var(--navy);margin-bottom:8px">Connecting to ABDM Network...</h3><p style="color:#64748b;font-size:13px" id="abdm-status">Locating digitally signed Form 1A...</p></div>';foot='<button class="btn secondary" disabled>Please wait...</button>'}else if(step===2){body='<div class="notice success"><b>Medical Certificate Fetched!</b><br>Form 1A has been successfully verified via the registered practitioner.</div><div class="metrics" style="margin-top:15px"><div class="metric"><span>Renewal Fee</span><b>₹200</b></div><div class="metric"><span>Smart Card Fee</span><b>₹200</b></div><div class="metric"><span>Total Due</span><b style="color:var(--navy);font-size:15px">₹400</b></div></div>';foot='<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="payRenew()">Pay ₹400 securely</button>'}return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Renew Driving License</h2><p>KA-01-2015-XXXXX</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">'+body+'</div><footer class="modal-foot">'+foot+'</footer></section></div>'}
+    function myLicense(){
+    var isApp = state.role === 'applicant';
+    var dlNum = (isApp && state.dlStatus === 'dispatched') ? state.dlNumber : 'KA-01-2015-004821';
+    var name = (isApp && state.dlStatus === 'dispatched') ? 'Rohan Shah' : (state.role==='buyer'?'Rohan Shah':'Ananya Rao');
+    var addr = (isApp && state.dlStatus === 'dispatched') ? 'Flat 402, Green Meadows, Senapati Bapat Road, Pune, Maharashtra - 411016' : (state.dlAddress||'#42, 3rd Cross, Indiranagar, Bengaluru, 560038');
+    var validity = (isApp && state.dlStatus === 'dispatched') ? 'Active · Valid till 17 Sep 2046' : 'Active · Valid till 14 Aug 2035';
+    var stateTag = (isApp && state.dlStatus === 'dispatched') ? '📍 Maharashtra Rules Applied' : '📍 Karnataka Rules Applied';
 
-    function changeDetailsDoneModal(){var body='<div class="success-box"><i>✓</i><h3>Details Updated</h3><p>Your Digital DL has been instantly updated with the new details.</p></div><div class="notice info" style="margin-top:20px"><b>Need a new physical card?</b><br>You can order a replacement Smart Card with your newly updated details printed on it.</div>';var foot='<button class="btn secondary" onclick="closeModal()">No thanks, Digital is fine</button><button class="btn primary" onclick="openDuplicateDl(\'address\')">Order Physical Card →</button>';return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>DL Updates Complete</h2><p>KA-01-2015-XXXXX</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">'+body+'</div><footer class="modal-foot">'+foot+'</footer></section></div>'}
-    
+    return '<div class="section"><div class="intro"><div><h1>My Driving License</h1><p>Manage your DL, endorsements, and personal details.</p></div></div><div class="grid"><div class="stack"><section class="card pad"><div class="card-title"><div><h2>DL: '+dlNum+' <span style="font-size:12px;background:#f1f5f9;color:#475569;padding:4px 8px;border-radius:12px;vertical-align:middle;margin-left:8px;font-weight:600;cursor:pointer" onclick="alertToast(\'Smart Routing\',\'State auto-detected from DL prefix.\')">'+stateTag+'</span></h2><p>'+validity+'</p></div><span class="transfer-status" style="background:#d8f0e7;color:#1b8067">Active</span></div><div class="metrics" style="margin-top:15px"><div class="metric"><span>Name</span><b>'+name+'</b></div><div class="metric"><span>Blood Group</span><b>O+</b></div><div class="metric" style="grid-column:1/-1"><span>Registered Address</span><b style="line-height:1.4">'+addr+'</b></div></div><div class="attention" style="margin-top:15px"><div class="attention-row"><div class="attention-icon blue">✓</div><div><b>LMV (Light Motor Vehicle)</b><span>Car, Jeep, Taxi</span></div></div><div class="attention-row"><div class="attention-icon blue">✓</div><div><b>MCWG (Motorcycle with Gear)</b><span>Two-wheelers of all engine CC</span></div></div></div></section></div><div class="stack"><section class="card pad"><div class="card-title"><div><h2>License Services</h2><p>Digital-first updates.</p></div></div><div class="checklist"><div class="checkrow" style="cursor:pointer" onclick="openChangeDetails()"><div class="check" style="background:#e4edf8;color:#2860a4"><i>✎</i></div><div><b>Change DL Details</b><span>Update your address, mobile number, or name.</span></div></div><div class="checkrow" style="cursor:pointer" onclick="openDuplicateDl()"><div class="check" style="background:#e4edf8;color:#2860a4"><i>▤</i></div><div><b>Apply for Duplicate DL</b><span>Lost or stolen? Order a replacement smart card.</span></div></div><div class="checkrow" style="cursor:pointer" onclick="openIdp()"><div class="check" style="background:#e4edf8;color:#2860a4"><i>✈️</i></div><div><b>International Driving Permit</b><span>Apply for an IDP to drive outside India.</span></div></div><div class="checkrow" style="cursor:pointer" onclick="openRenewDl()"><div class="check" style="background:#e4edf8;color:#2860a4"><i>↻</i></div><div><b>Renew Driving License</b><span>Renew your expiring DL online.</span></div></div></div></section></div></div></div>';
+}
     window.openFancyNumber=function(){state.modal='fancy-number';state.fancyStep=0;render()};
     window.checkFancyNumber=function(){
         var num = document.getElementById('fancy-input').value;
