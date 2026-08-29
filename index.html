@@ -178,6 +178,19 @@
     function timeline(){var t=state.transfer,items=[[t.inviteSent,'Seller initiated transfer',t.inviteSent?'Buyer invite sent to '+(t.buyerName||'the buyer'):'Start with state-aware readiness check.'],[t.buyerAccepted,'Buyer accepted request',t.buyerAccepted?'Buyer identity and consent confirmed.':'Waiting for buyer to review vehicle.'],[t.sellerKyc&&t.buyerKyc,'Remote verification complete',t.sellerKyc&&t.buyerKyc?'Both parties completed guided video verification.':'Each party completes a short remote session.'],[t.submitted,'Submitted for RTO review',t.submitted?'Mock application TR-KA-43821 is under review.':'This happens only after checklist completion.']];return '<div class="timeline">'+items.map(function(x,i){var cls=x[0]?'done':(i===0||(i===1&&t.inviteSent)||(i===2&&t.buyerAccepted)||(i===3&&t.sellerKyc&&t.buyerKyc)?'pending':'');return '<div class="timeline-row"><i class="dot '+cls+'"></i><div><b>'+x[1]+'</b><span>'+x[2]+'</span></div></div>'}).join('')+'</div>'}
     function transfers(){var t=state.transfer,body='';if(t.status==='Not started')body='<section class="card pad"><div class="empty"><i>⇄</i><b>No transfer in progress</b><p>Begin with a readiness check before inviting the buyer.</p><button class="btn primary" onclick="openTransfer()">Start ownership transfer</button></div></section>';else{var task='';if(state.role==='seller'&&!t.vehicleVerified)task='<div class="notice warning"><b>Your task:</b> Upload current photos of the physical vehicle and chassis number.<br><button class="btn primary small" style="margin-top:9px" onclick="openVehicleVerify()">Verify Vehicle</button></div>';else if(state.role==='seller'&&!t.sellerKyc)task='<div class="notice warning"><b>Your task:</b> Complete a short guided video verification before the buyer can finish their side.<br><button class="btn primary small" style="margin-top:9px" onclick="openKyc(\'seller\')">Start seller verification</button></div>';else if(state.role==='seller'&&!t.buyerAccepted)task='<div class="notice info"><b>Waiting for buyer.</b> '+safe(t.buyerName||'The buyer')+' has a secure invite.<br><button class="btn secondary small" style="margin-top:9px" onclick="switchRole(\'buyer\')">Preview buyer experience</button></div>';else if(state.role==='buyer'&&!t.buyerAccepted)task='<div class="notice warning"><b>Your task:</b> Review the vehicle and accept the ownership-transfer request.<br><button class="btn primary small" style="margin-top:9px" onclick="openBuyerInvite()">View request</button></div>';else if(state.role==='buyer'&&!t.buyerKyc)task='<div class="notice warning"><b>Your task:</b> Complete your remote identity and consent verification.<br><button class="btn primary small" style="margin-top:9px" onclick="openKyc(\'buyer\')">Start video verification</button></div>';else if(t.submitted)task='<div class="notice success"><b>No action needed now.</b> Transfer submitted for mock '+car().state+' RTO review.</div>';body='<div class="grid"><div class="stack"><section class="card pad"><div class="card-title"><div><h2>Transfer Room · '+car().name+'</h2><p><span class="plate">'+car().reg+'</span> · '+car().state+' route</p></div><span class="transfer-status">'+safe(t.status)+'</span></div>'+task+'<div style="margin-top:20px">'+timeline()+'</div></section><section class="card pad"><div class="card-title"><div><h2>Shared vehicle snapshot</h2><p>Both parties review the same agreed facts.</p></div></div><div class="metrics"><div class="metric"><span>Seller</span><b>Ananya Rao</b></div><div class="metric"><span>Buyer</span><b>'+safe(t.buyerName||'Not invited')+'</b></div><div class="metric"><span>Government transfer fee</span><b>Mock estimate: '+(stateRules[car().state]?stateRules[car().state].fee:'₹300')+' + charges</b></div><div class="metric"><span>Private sale price</span><b style="color:#718096">Kept outside service</b></div></div></section></div><div class="stack"><section class="card pad"><div class="card-title"><div><h2>Remote eligibility ('+car().state+')</h2><p>Based on state policies</p></div></div><div class="notice '+(car().state==='Tamil Nadu'?'warning':'success')+'"><b>'+(stateRules[car().state]?stateRules[car().state].type:'Hybrid')+' Route</b><br>'+(stateRules[car().state]?stateRules[car().state].policy:'')+'</div><button class="link" style="margin-top:12px" onclick="alertToast(\'Why this route?\',\'State-specific rules determine whether a remote verification lane is offered.\')">Why this route?</button></section><section class="card pad"><div class="card-title"><div><h2>Transfer documents</h2><p>Validated before submission</p></div></div><div class="metrics"><div class="metric"><span>RC and insurance</span><b style="color:#17806a">Ready</b></div><div class="metric"><span>PUC certificate</span><b style="color:#a36a08">Due soon</b></div><div class="metric"><span>Physical Car & Chassis</span><b style="color:'+(t.vehicleVerified?'#17806a':'#a36a08')+'">'+(t.vehicleVerified?'Verified AI':'Pending')+'</b></div><div class="metric"><span>Seller & Buyer Consent</span><b style="color:'+(t.sellerKyc&&t.buyerKyc?'#17806a':'#a36a08')+'">'+(t.sellerKyc&&t.buyerKyc?'Verified':'Pending')+'</b></div></div></section></div></div>'}var selectHtml='';if(t.status!=='Not started'){selectHtml='<div style="margin-bottom:20px;padding:12px 18px;background:#f5f9ff;border:1px solid #d6e4f5;border-radius:12px;display:flex;align-items:center;gap:15px;color:#284d7d"><b>Active Vehicle Transfer:</b><select class="input" style="max-width:280px;margin:0;background:#fff;border-color:#d6e4f5" onchange="state.selected=this.value;render()">'+vehicles.map(function(v){return '<option value="'+v.id+'" '+(state.selected===v.id?'selected':'')+'>'+v.name+' ('+v.reg+')</option>'}).join('')+'</select></div>';}return '<div class="section"><div class="intro"><div><h1>Ownership transfers</h1><p>A shared, state-aware journey—without guessing who must do what next.</p></div>'+(t.status==='Not started'?'':'<button class="btn secondary small" onclick="resetTransfer()">Reset demo</button>')+'</div>'+selectHtml+body+'</div>'}
     function payments() {
+    var isApp = state.role === 'applicant';
+    if(isApp) {
+        var llPaymentHTML = state.llComplete || (state.llStep >= 5) 
+            ? '<div class="attention-row"><div class="attention-icon green" style="font-size:16px">✓</div><div><b>Learner\'s License Application Fee (MCWG + LMV)</b><span>Today · ₹350 · RR-LL-4821</span></div><button class="link" onclick="downloadDocument(\'RR-LL-4821_Receipt.pdf\')">Download Receipt</button></div>'
+            : '<div class="empty" style="padding:24px;text-align:center"><i style="font-size:28px;font-style:normal">💳</i><b style="display:block;margin-top:6px;font-size:14px;color:var(--navy)">No Transactions Yet</b><p style="font-size:12px;color:#64748b;margin-top:4px">Your application fee payment receipt will appear here automatically after payment.</p></div>';
+
+        return '<div class="section"><div class="intro"><div><h1>Payments & Receipts</h1><p>View transaction history and download official fee receipts for your license application.</p></div></div>' +
+        '<div class="grid"><div class="stack">' +
+        '<section class="card pad"><div class="card-title"><div><h2>Application Fees & Receipts</h2><p>Official Parivahan receipts (Form 3 acknowledge).</p></div></div>' +
+        '<div class="attention" style="margin-top:14px">' + llPaymentHTML + '</div></section>' +
+        '</div></div></div>';
+    }
+
     if(!state.payments) {
         state.payments = [
             {title: 'Driving License Renewal', amount: 200, date: '15 Aug 2026', id: 'RR-DL-9921'},
@@ -210,14 +223,48 @@
     '</div></div></div>';
 }
 
-    
-window.openLLApply = function() { state.modal = 'll-apply'; state.llStep = 0; state.llState = 'Maharashtra'; state.llDocs = 0; state.llSigned = false; render(); };
-window.llNext = function() { state.llStep++; render(); };
-window.llSetState = function(val) { state.llState = val; render(); };
-window.llFetchDoc = function(type) { state.llDocs++; render(); if(state.llDocs === 2) setTimeout(window.llNext, 1200); };
-window.llSign = function() { state.llSigned = true; render(); setTimeout(window.llNext, 1000); };
-window.llPay = function() { state.llStep = 5; render(); };
+window.openLLApply = function() { 
+    state.modal = 'll-apply'; 
+    state.llStep = 0; 
+    state.llState = 'Maharashtra'; 
+    state.llDocs = 0; 
+    state.llSigned = false; 
+    state.llAgeDocType = '10th Marksheet';
+    state.llAddrDocType = 'Electricity Bill';
+    render(); 
+};
+window.llNext = function() { 
+    state.llStep++; 
+    render(); 
+};
+window.llSetState = function(val) { 
+    state.llState = val; 
+    render(); 
+};
+window.llFetchDoc = function(type) { 
+    state.llDocs++; 
+    render(); 
+    if(state.llDocs === 2) {
+        setTimeout(function(){
+            alertToast('Documents Verified', 'Proof of Age & Proof of Address fetched via DigiLocker.');
+            window.llNext();
+        }, 1000);
+    }
+};
+window.llSign = function() { 
+    state.llSigned = true; 
+    render(); 
+};
+window.llClearSign = function() {
+    state.llSigned = false;
+    render();
+};
+window.llPay = function() { 
+    state.llStep = 5; 
+    render(); 
+};
 window.llSubmitTest = function() { 
+    window.stopWebcam();
     state.llStep = 7; 
     state.llComplete = true;
     state.llNumber = 'MH-12-LL-2026-004821';
@@ -232,47 +279,163 @@ function llModal() {
     var body = '', foot = '';
     
     if (step === 0) {
-        body = '<div class="field"><label>Select your State</label><select class="input" onchange="llSetState(this.value)"><option value="Maharashtra" '+(state.llState==='Maharashtra'?'selected':'')+'>Maharashtra (Fully Faceless)</option><option value="Karnataka" '+(state.llState==='Karnataka'?'selected':'')+'>Karnataka (Hybrid - RTO Review)</option><option value="Tamil Nadu" '+(state.llState==='Tamil Nadu'?'selected':'')+'>Tamil Nadu (Strict - Physical Test)</option></select></div><div class="field" style="margin-top:15px"><label>Aadhaar Number</label><input class="input" type="text" placeholder="XXXX-XXXX-XXXX" value="9876-5432-1098"></div><div class="notice info" style="margin-top:15px">Aadhaar is used strictly for identity verification. It does not act as definitive proof of address or age.</div>';
-        foot = '<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="llNext()">Request OTP</button>';
+        body = '<div class="field"><label>Jurisdictional RTO State (Auto-detected via Aadhaar e-KYC)</label><select class="input" onchange="llSetState(this.value)"><option value="Maharashtra" '+(state.llState==='Maharashtra'?'selected':'')+'>Maharashtra (Fully Faceless e-KYC Route)</option><option value="Karnataka" '+(state.llState==='Karnataka'?'selected':'')+'>Karnataka (Hybrid - RTO Review Route)</option><option value="Tamil Nadu" '+(state.llState==='Tamil Nadu'?'selected':'')+'>Tamil Nadu (Strict - Physical Test Required)</option></select><p style="font-size:11px;color:var(--muted);margin-top:4px">Under MVA Sec 8, state rules auto-apply based on your residential address or current place of business.</p></div><div class="field" style="margin-top:15px"><label>Aadhaar Number (UIDAI Identity)</label><input class="input" type="text" placeholder="XXXX-XXXX-XXXX" value="9876-5432-1098" style="font-weight:600;letter-spacing:1px"></div><div class="notice info" style="margin-top:15px"><b>Aadhaar Biometric Authentication</b><br>Aadhaar confirms your living biometric identity. Statutory proof of exact age and address will be linked in the next step.</div>';
+        foot = '<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="llNext()">Request Aadhaar OTP →</button>';
     } else if (step === 1) {
-        body = '<div class="field"><label>Aadhaar OTP</label><input class="input" type="text" placeholder="6-digit code"></div><p style="font-size:12px;color:var(--muted)">OTP sent to mobile linked with Aadhaar ending in 1098.</p>';
-        foot = '<button class="btn secondary" onclick="state.llStep=0;render()">Back</button><button class="btn primary" onclick="llNext()">Verify Identity</button>';
+        body = '<div class="field"><label>Aadhaar 6-Digit OTP</label><input class="input" type="text" placeholder="6-digit code" value="123456" style="font-size:20px;text-align:center;letter-spacing:6px;font-weight:700;color:var(--navy)"></div><p style="font-size:12px;color:var(--muted)">OTP sent to mobile linked with Aadhaar ending in 1098.</p>';
+        foot = '<button class="btn secondary" onclick="state.llStep=0;render()">Back</button><button class="btn primary" onclick="llNext()">Verify Identity & Continue →</button>';
     } else if (step === 2) {
-        body = '<div class="notice success" style="margin-bottom:15px"><b>Identity Verified</b><br>Welcome, Rohan Shah.</div><p style="font-size:13px;color:var(--muted)">As per regulations, Aadhaar is not valid proof of exact age or current residency. Please provide statutory documents.</p><div style="display:grid;gap:12px;margin-top:15px">';
-        
         var d1 = state.llDocs >= 1;
         var d2 = state.llDocs >= 2;
-        body += '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px;border:1px solid #dce5ef;border-radius:8px"><div><b style="font-size:13px;display:block">Proof of Age</b><span style="font-size:11px;color:var(--muted)">10th Class Marksheet</span></div>'+(d1?'<b style="color:var(--green)">✓ Fetched</b>':'<button class="btn secondary small" onclick="llFetchDoc(1)">Fetch via DigiLocker</button>')+'</div>';
-        body += '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px;border:1px solid #dce5ef;border-radius:8px"><div><b style="font-size:13px;display:block">Proof of Address</b><span style="font-size:11px;color:var(--muted)">BESCOM Electricity Bill</span></div>'+(d2?'<b style="color:var(--green)">✓ Fetched</b>':'<button class="btn secondary small" onclick="llFetchDoc(2)">Fetch via DigiLocker</button>')+'</div>';
-        body += '</div>';
-        foot = '<button class="btn secondary" onclick="state.llStep=1;render()">Back</button><button class="btn primary" disabled>Continue</button>';
+        
+        body = '<div class="notice success" style="margin-bottom:15px"><b>Identity Verified: Rohan Shah</b><br>DOB (Aadhaar): 14/08/2003 · Aadhaar No: XXXX-XXXX-1098</div><p style="font-size:13px;color:var(--muted)">Under CMVR Rule 10, select and provide valid statutory documents. Multiple options are supported:</p>' +
+        '<div style="display:grid;gap:14px;margin-top:15px">' +
+        '<div style="padding:14px;border:1px solid #dce5ef;border-radius:10px;background:#f8fafc">' +
+        '<label style="font-size:12px;font-weight:700;color:var(--navy)">Proof of Date of Birth (Age)</label>' +
+        '<div style="display:flex;gap:10px;margin-top:6px">' +
+        '<select class="input" style="flex:1" onchange="state.llAgeDocType=this.value">' +
+        '<option value="10th Marksheet">10th Class Marksheet / School Leaving Certificate</option>' +
+        '<option value="Birth Certificate">Birth Certificate (Municipal Authority)</option>' +
+        '<option value="Passport">Indian Passport</option>' +
+        '<option value="PAN Card">PAN Card</option>' +
+        '<option value="Electoral ID">Electoral Photo ID (Voter Card)</option>' +
+        '</select>' +
+        (d1 ? '<span class="tag green" style="align-self:center;padding:6px 12px;font-size:12px">✓ Verified</span>' : '<button class="btn secondary small" style="white-space:nowrap" onclick="llFetchDoc(1)">Fetch via DigiLocker</button>') +
+        '</div></div>' +
+        '<div style="padding:14px;border:1px solid #dce5ef;border-radius:10px;background:#f8fafc">' +
+        '<label style="font-size:12px;font-weight:700;color:var(--navy)">Proof of Current Residence (Address)</label>' +
+        '<div style="display:flex;gap:10px;margin-top:6px">' +
+        '<select class="input" style="flex:1" onchange="state.llAddrDocType=this.value">' +
+        '<option value="Electricity Bill">Electricity / BESCOM / MSEDCL Utility Bill</option>' +
+        '<option value="Rent Agreement">Registered Rent Agreement (Current Residence)</option>' +
+        '<option value="Passport">Indian Passport</option>' +
+        '<option value="Bank Passbook">Nationalised Bank Passbook / Statement</option>' +
+        '<option value="Employer Certificate">Employer / University Bonafide Certificate</option>' +
+        '</select>' +
+        (d2 ? '<span class="tag green" style="align-self:center;padding:6px 12px;font-size:12px">✓ Verified</span>' : '<button class="btn secondary small" style="white-space:nowrap" onclick="llFetchDoc(2)">Fetch via DigiLocker</button>') +
+        '</div></div>' +
+        '</div>';
+        foot = '<button class="btn secondary" onclick="state.llStep=1;render()">Back</button><button class="btn primary" '+(d1&&d2?'':'disabled')+' onclick="llNext()">Continue to Signature →</button>';
     } else if (step === 3) {
-        body = '<div class="notice info" style="margin-bottom:15px">Please provide your signature for the Learner\'s License card.</div><div style="border:2px dashed #cbd5e1;border-radius:12px;height:160px;display:grid;place-items:center;cursor:pointer;background:#f8fafc" onclick="llSign()">'+(state.llSigned?'<img src="data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 200 60\'><path d=\'M20,40 Q40,10 60,35 T100,30 T140,25 T180,35\' stroke=\'%23000080\' stroke-width=\'3\' fill=\'none\'/></svg>" style="height:80px">':'<span style="color:#64748b;font-size:13px">Tap/Click to draw your digital signature</span>')+'</div>';
-        foot = '<button class="btn secondary" onclick="state.llStep=2;render()">Back</button><button class="btn primary" '+(state.llSigned?'':'disabled')+' onclick="llNext()">Confirm Signature</button>';
+        var sigSvg = '<svg viewBox="0 0 300 90" style="width:240px;height:75px"><path d="M 20 60 Q 40 10 55 45 T 75 40 T 95 30 Q 115 15 130 50 T 150 40 Q 170 20 185 45 T 215 35 T 240 50 T 275 35" fill="none" stroke="#000080" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M 30 75 L 260 70" fill="none" stroke="#000080" stroke-width="2" stroke-linecap="round"/></svg>';
+        
+        body = '<div class="notice info" style="margin-bottom:15px"><b>Applicant Digital Signature</b><br>Tap or click on the canvas to place your legal signature for the official smart card.</div>' +
+        '<div style="border:2px dashed '+(state.llSigned?'#138808':'#cbd5e1')+';border-radius:12px;min-height:160px;display:grid;place-items:center;cursor:pointer;background:'+(state.llSigned?'#f0fdf4':'#f8fafc')+';padding:15px;position:relative" onclick="llSign()">' +
+        (state.llSigned 
+            ? '<div style="text-align:center">'+sigSvg+'<div style="font-size:11px;color:#15803d;font-weight:700;margin-top:6px">✓ Digitally Signed & Timestamped</div></div>' 
+            : '<div style="text-align:center"><i style="font-size:28px;color:#94a3b8;font-style:normal">✍️</i><div style="color:#64748b;font-size:13px;font-weight:600;margin-top:6px">Tap / Click anywhere to draw your signature</div><small style="color:#94a3b8;font-size:11px">Autographed as: Rohan Shah</small></div>') +
+        '</div>' +
+        (state.llSigned ? '<div style="text-align:right;margin-top:8px"><button class="link" style="color:#b91c1c;font-size:12px" onclick="llClearSign()">Clear & Redraw</button></div>' : '');
+        
+        foot = '<button class="btn secondary" onclick="state.llStep=2;render()">Back</button><button class="btn primary" '+(state.llSigned?'':'disabled')+' onclick="llNext()">Confirm Signature & Proceed →</button>';
     } else if (step === 4) {
-        body = '<div class="field"><label>Vehicle Classes</label><div style="display:flex;gap:15px;margin-top:8px"><label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" checked> Motorcycle with Gear (MCWG)</label><label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" checked> Light Motor Vehicle (LMV)</label></div></div><div class="field" style="margin-top:20px;padding:12px;background:#f1f5f9;border-radius:8px"><label style="display:flex;align-items:flex-start;gap:10px;font-size:12px;color:var(--navy);font-weight:600;margin:0"><input type="checkbox" checked style="margin-top:2px"> I self-certify that I am physically fit to drive under Form 1. (Auto-certified: Age < 40)</label></div><div class="metrics" style="margin-top:20px"><div class="metric"><span>LL Application Fee</span><b>₹150</b></div><div class="metric"><span>LL Test Fee</span><b>₹200</b></div><div class="metric"><span>Total Due</span><b style="font-size:15px;color:var(--navy)">₹350</b></div></div>';
-        foot = '<button class="btn secondary" onclick="state.llStep=3;render()">Back</button><button class="btn primary" onclick="llPay()">Pay ₹350</button>';
+        body = '<div class="field"><label style="font-size:13px;font-weight:700;color:var(--navy)">Select Vehicle Class(es) to Learn</label>' +
+        '<div style="display:grid;gap:12px;margin-top:10px">' +
+        '<div style="padding:14px;border:1px solid #cbd5e1;border-radius:10px;background:#fff">' +
+        '<label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;font-weight:700;color:var(--navy);margin:0;cursor:pointer">' +
+        '<input type="checkbox" checked style="margin-top:3px"> ' +
+        '<div><div>Motorcycle with Gear (MCWG)</div><p style="font-size:11px;color:#64748b;margin:3px 0 0;font-weight:400">Two-wheelers of all engine capacities with or without manual clutch. <b>Examples:</b> Royal Enfield, Honda Activa, Pulsar, TVS Jupiter, Yamaha, Duke.</p></div>' +
+        '</label></div>' +
+        '<div style="padding:14px;border:1px solid #cbd5e1;border-radius:10px;background:#fff">' +
+        '<label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;font-weight:700;color:var(--navy);margin:0;cursor:pointer">' +
+        '<input type="checkbox" checked style="margin-top:3px"> ' +
+        '<div><div>Light Motor Vehicle (LMV)</div><p style="font-size:11px;color:#64748b;margin:3px 0 0;font-weight:400">Four-wheeler passenger vehicles & motor cars weighing under 7,500 kg. <b>Examples:</b> Swift, Hyundai Creta, Honda City, Thar, Nexon, private cabs.</p></div>' +
+        '</label></div>' +
+        '</div></div>' +
+        '<div class="field" style="margin-top:16px;padding:12px 14px;background:#f1f5f9;border-radius:8px">' +
+        '<label style="display:flex;align-items:flex-start;gap:10px;font-size:12px;color:var(--navy);font-weight:600;margin:0;cursor:pointer">' +
+        '<input type="checkbox" checked style="margin-top:2px"> I self-certify under Form 1 that I am physically fit with normal vision to operate motor vehicles. (Doctor Form 1A only required if age > 40).' +
+        '</label></div>' +
+        '<div class="metrics" style="margin-top:16px"><div class="metric"><span>Application Fee (MCWG + LMV)</span><b>₹150</b></div><div class="metric"><span>Computerized Test Fee</span><b>₹200</b></div><div class="metric"><span>Total Government Fee</span><b style="font-size:16px;color:var(--navy)">₹350</b></div></div>';
+        foot = '<button class="btn secondary" onclick="state.llStep=3;render()">Back</button><button class="btn primary" onclick="llPay()">Pay ₹350 & Proceed to Test →</button>';
     } else if (step === 5) {
         if (state.llState === 'Tamil Nadu') {
-            body = '<div class="notice warning" style="margin-bottom:15px"><b>Physical RTO Visit Required</b><br>Tamil Nadu regulations require a physical visit to the RTO for the Learner\'s License test. The online home test is not available in your jurisdiction.</div><div class="empty" style="margin-top:15px;padding:20px"><i>📅</i><b style="display:block;margin-top:8px">Book RTO Slot</b><p style="margin:5px 0 10px;font-size:12px">Choose a date and time to visit your local RTO for the computerized test.</p><button class="btn primary" onclick="closeModal()">Book Slot</button></div>';
+            body = '<div class="notice warning" style="margin-bottom:15px"><b>Physical RTO Visit Required (Tamil Nadu)</b><br>Tamil Nadu regulations require a physical presence at the local RTO for the computerized LL test. Home proctoring is not permitted under state transport rules.</div><div class="empty" style="margin-top:15px;padding:24px"><i style="font-size:32px;font-style:normal">📅</i><b style="display:block;margin-top:8px;font-size:15px;color:var(--navy)">Book Computerized Test Slot</b><p style="margin:5px 0 14px;font-size:12px">Choose an appointment date and visit your jurisdiction RTO.</p><button class="btn primary" onclick="closeModal()">Book RTO Slot</button></div>';
             foot = '<button class="btn secondary" onclick="state.llStep=4;render()">Back</button>';
         } else {
-            body = '<div class="notice info" style="margin-bottom:15px"><b>AI-Proctored LL Test</b><br>You are about to begin the mandatory road rules quiz. Do not look away from the screen.</div><div class="video" style="min-height:180px;margin-top:15px;border-radius:12px;display:flex;flex-direction:column;justify-content:center;align-items:center"><div class="video-avatar" style="width:60px;height:60px;background:#cbd5e1;border:2px solid #58cfab;box-shadow:none;margin-bottom:8px"></div><span style="color:#58cfab;font-weight:800;font-size:11px">● AI Face Tracking Active</span><span style="margin-top:2px;font-size:11px">Camera & Location verified</span></div>';
-            foot = '<button class="btn primary" onclick="llNext()" style="width:100%">Start Quiz (3 Questions)</button>';
+            setTimeout(function(){
+                var v = document.getElementById('ll-webcam-feed');
+                if(v) {
+                    if(window.currentWebcamStream) {
+                        v.srcObject = window.currentWebcamStream;
+                    } else {
+                        navigator.mediaDevices.getUserMedia({video:true, audio:false}).then(function(s){
+                            window.currentWebcamStream = s;
+                            v.srcObject = s;
+                        }).catch(function(e){
+                            console.warn('Webcam stream note:', e);
+                        });
+                    }
+                }
+            }, 100);
+
+            body = '<div class="notice info" style="margin-bottom:15px"><b>AI-Proctored Road Safety Test</b><br>You are about to start the official 15-question road regulations test from home. Your webcam and biometric liveness will be continuously monitored.</div>' +
+            '<div class="video" style="min-height:220px;margin-top:12px;border-radius:12px;display:flex;flex-direction:column;justify-content:center;align-items:center;position:relative">' +
+            '<video id="ll-webcam-feed" autoplay muted playsinline style="width:110px;height:110px;object-fit:cover;border-radius:50%;border:4px solid #58cfab;box-shadow:0 0 0 6px rgba(255,255,255,.2);margin-bottom:10px;background:#1e293b"></video>' +
+            '<b style="color:#fff;font-size:14px">Camera Feed Live · Rohan Shah</b>' +
+            '<div class="signal" style="margin-top:8px">● AI Face Tracking Active</div>' +
+            '</div>' +
+            '<div class="metrics" style="margin-top:14px"><div class="metric"><span>Total Questions</span><b>15 Questions</b></div><div class="metric"><span>Passing Cutoff</span><b>9 / 15 (60%)</b></div><div class="metric"><span>Time Allotted</span><b>15 Minutes (60s / question)</b></div></div>';
+            
+            foot = '<button class="btn secondary" onclick="closeModal()">Exit</button><button class="btn primary" onclick="llNext()" style="min-width:180px">Begin 15-Question Test →</button>';
         }
     } else if (step === 6) {
-        body = '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:15px"><span>Question 1 of 3</span><span>Time: 00:29</span></div><b style="display:block;font-size:15px;margin-bottom:15px">What is the legally permissible blood alcohol limit for driving in India?</b><div style="display:grid;gap:8px"><button class="btn secondary" style="justify-content:flex-start" onclick="llSubmitTest()">0.08%</button><button class="btn secondary" style="justify-content:flex-start" onclick="llSubmitTest()">0.05%</button><button class="btn secondary" style="justify-content:flex-start" onclick="llSubmitTest()">0.03% (30mg / 100ml)</button></div>';
-        foot = '<div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px"><span style="color:#58cfab">●</span> Face tracking active</div>';
+        setTimeout(function(){
+            var v = document.getElementById('ll-webcam-feed-test');
+            if(v) {
+                if(window.currentWebcamStream) {
+                    v.srcObject = window.currentWebcamStream;
+                } else {
+                    navigator.mediaDevices.getUserMedia({video:true, audio:false}).then(function(s){
+                        window.currentWebcamStream = s;
+                        v.srcObject = s;
+                    }).catch(function(e){console.warn('Webcam note:', e)});
+                }
+            }
+        }, 100);
+
+        body = '<div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding-bottom:12px;margin-bottom:14px">' +
+        '<div><span class="tag green">AI Proctor Active</span> <span style="font-size:12px;color:var(--muted);margin-left:8px">Question 14 of 15</span></div>' +
+        '<div style="font-weight:700;color:#e11d48;font-size:13px">⏱ 00:38 remaining</div>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 85px;gap:15px;align-items:start">' +
+        '<div>' +
+        '<b style="display:block;font-size:15px;line-height:1.4;margin-bottom:14px;color:var(--navy)">What is the maximum permissible Blood Alcohol Content (BAC) limit legally allowed while driving in India?</b>' +
+        '<div style="display:grid;gap:10px">' +
+        '<button class="btn secondary" style="justify-content:flex-start;padding:12px;font-size:13px" onclick="llSubmitTest()">A. 0.08% (80mg per 100ml of blood)</button>' +
+        '<button class="btn secondary" style="justify-content:flex-start;padding:12px;font-size:13px" onclick="llSubmitTest()">B. 0.05% (50mg per 100ml of blood)</button>' +
+        '<button class="btn secondary" style="justify-content:flex-start;padding:12px;font-size:13px;border-color:var(--blue);background:var(--blue-soft);color:var(--navy);font-weight:700" onclick="llSubmitTest()">C. 0.03% (30mg per 100ml of blood) ✓</button>' +
+        '<button class="btn secondary" style="justify-content:flex-start;padding:12px;font-size:13px" onclick="llSubmitTest()">D. Zero tolerance (0.00% under all conditions)</button>' +
+        '</div>' +
+        '</div>' +
+        '<div style="text-align:center">' +
+        '<video id="ll-webcam-feed-test" autoplay muted playsinline style="width:80px;height:80px;object-fit:cover;border-radius:50%;border:3px solid #58cfab;background:#1e293b"></video>' +
+        '<span style="display:block;font-size:10px;color:#059669;font-weight:700;margin-top:4px">Proctored</span>' +
+        '</div>' +
+        '</div>';
+        foot = '<div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px"><span style="color:#58cfab">●</span> Camera & gaze tracking verified</div>';
     } else if (step === 7) {
         if (state.llState === 'Maharashtra') {
-            body = '<div class="success-box"><i>🎉</i><h3>Test Passed: 3/3</h3><p>Congratulations! Under Maharashtra\'s faceless route, your digital Learner\'s License has been instantly generated.</p></div><div class="attention" style="margin-top:20px"><div class="attention-row"><div class="attention-icon green" style="font-size:16px">D</div><div><b>Learner\'s License</b><span>MH-12-LL-2026</span></div><button class="link" onclick="downloadDocument(\'MH_Learners_License.pdf\')">Download PDF</button></div></div>';
+            body = '<div class="success-box" style="background:#f0fdf4;color:#166534">' +
+            '<i style="background:#dcfce7;color:#15803d;font-size:26px;display:grid;place-items:center;width:50px;height:50px;margin:0 auto 12px;border-radius:50%;font-style:normal">🎉</i>' +
+            '<h3 style="font-size:18px">Test Passed: 14 / 15 Score (93%)</h3>' +
+            '<p style="font-size:13px;margin-top:4px">Congratulations! You met the 60% cutoff (Minimum 9 required). Under Maharashtra\'s faceless route, your official Learner\'s License has been instantly generated.</p>' +
+            '</div>' +
+            '<div class="attention" style="margin-top:16px">' +
+            '<div class="attention-row"><div class="attention-icon green" style="font-size:16px">🪪</div><div><b>Learner\'s License: MH-12-LL-2026-004821</b><span>Valid for 6 months · Classes: MCWG, LMV</span></div><button class="link" onclick="downloadDocument(\'Learners_License_MH12.pdf\')">Download PDF</button></div>' +
+            '</div>';
         } else {
-            body = '<div class="success-box" style="background:#fffbf1;color:#8c620d"><i style="background:#f0deb8;color:#8c620d;font-size:22px;display:flex;align-items:center;justify-content:center;width:44px;height:44px;margin:0 auto 10px;border-radius:50%;font-style:normal">⏳</i><h3>Test Passed: 3/3</h3><p>Congratulations! Under Karnataka\'s hybrid route, your test results have been forwarded to the RTO for manual verification.</p></div><p style="font-size:13px;text-align:center;margin-top:20px;color:var(--muted)">Your digital LL will be generated within 24-48 hours once the RTO officer signs off.</p>';
+            body = '<div class="success-box" style="background:#fffbf1;color:#8c620d">' +
+            '<i style="background:#f0deb8;color:#8c620d;font-size:26px;display:grid;place-items:center;width:50px;height:50px;margin:0 auto 12px;border-radius:50%;font-style:normal">⏳</i>' +
+            '<h3 style="font-size:18px">Test Passed: 14 / 15 Score (93%)</h3>' +
+            '<p style="font-size:13px;margin-top:4px">Congratulations! Under Karnataka\'s hybrid model, your test results have been logged and submitted for RTO signoff.</p>' +
+            '</div>' +
+            '<p style="font-size:13px;text-align:center;margin-top:16px;color:var(--muted)">Your digital LL will be generated within 24-48 hours once signed off.</p>';
         }
-        foot = '<button class="btn primary" onclick="closeModal()">Return to Dashboard</button>';
+        foot = '<button class="btn primary" onclick="closeModal()">Return to Applicant Dashboard</button>';
     }
 
-    return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Apply for Learner\'s License</h2><p>Zero to Driver Workflow</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">'+head+body+'</div><footer class="modal-foot">'+foot+'</footer></section></div>';
+    return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Apply for Learner\'s License</h2><p>Zero to Driver Faceless Workflow</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">'+head+body+'</div><footer class="modal-foot">'+foot+'</footer></section></div>';
 }
 
 function modal(){if(!state.modal)return '';if(state.modal==='ll-apply') return llModal();
