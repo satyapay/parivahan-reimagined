@@ -1315,24 +1315,48 @@ if(state.modal==='challan')return challanModal();if(state.modal==='transfer')ret
 
             foot = '<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="nextIdp()">Proceed to Medical Fitness →</button>';
         } else if (step === 1) {
-            body = '<div class="notice info"><b>Form 1-A: Medical Fitness for International Driving</b><br>Driving abroad requires verified physical fitness, stereoscopic visual acuity, and absence of color blindness.</div>' +
-            '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:16px 0">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
-            '<span style="font-size:12px;color:#166534;font-weight:800;text-transform:uppercase">ABDM Digital Medical Sync</span>' +
-            '<span class="tag green">✓ Doctor Verified</span>' +
+            var isSynced = state.idpMedSynced || false;
+            var isDeclared = state.idpSelfDeclared || false;
+            var medReady = isSynced || isDeclared;
+
+            body = '<div class="notice info"><b>Form 1-A: Statutory Medical Fitness for Driving Abroad</b><br>Under 1949 Geneva Convention & CMVR Rule 5, applicants driving internationally must certify physical fitness, stereoscopic vision (6/6), and absence of color blindness.</div>' +
+            '<div style="margin-top:16px;display:grid;gap:12px">' +
+            
+            // Option A: ABDM Sync
+            '<div style="padding:14px;border:1.5px solid ' + (isSynced ? '#86efac' : '#cbd5e1') + ';border-radius:10px;background:' + (isSynced ? '#f0fdf4' : '#fff') + '">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+            '<b style="font-size:13px;color:var(--navy)">Option A: Sync via ABDM Health Locker (ABHA ID)</b>' +
+            (isSynced ? '<span class="tag green">✓ Form 1-A Verified</span>' : '<span class="tag blue">Instant Digital</span>') +
             '</div>' +
-            '<div class="metrics">' +
-            '<div class="metric"><span>Certified Practitioner</span><b>Dr. Arvind Kulkarni (Reg: KMC-49210)</b></div>' +
-            '<div class="metric"><span>Visual Acuity</span><b>6/6 in both eyes (Normal)</b></div>' +
-            '<div class="metric"><span>Color Vision (Ishihara Test)</span><b>Normal Trichromatic</b></div>' +
-            '<div class="metric"><span>Hearing & Neurological Reflexes</span><b>Satisfactory</b></div>' +
+            '<p style="font-size:12px;color:#64748b;margin:0 0 10px">Pull digitally signed Form 1-A from Ayushman Bharat Digital Mission tele-consultation.</p>' +
+            (isSynced 
+                ? '<div class="metrics" style="background:#fff;padding:10px;border-radius:8px;border:1px solid #dcfce7"><div class="metric"><span>Certifying Doctor</span><b>Dr. Arvind Kulkarni (KMC-49210)</b></div><div class="metric"><span>Visual Acuity / Reflexes</span><b>6/6 Normal · Trichromatic Color Vision</b></div></div>'
+                : '<button class="btn primary small" style="background:var(--blue);color:#fff;font-weight:700" onclick="idpSyncMedical()">⚡ Sync Form 1-A via ABHA →</button>') +
             '</div>' +
+
+            // Option B: Self-Declaration & Vitals Check
+            '<div style="padding:14px;border:1.5px solid ' + (isDeclared ? '#86efac' : '#cbd5e1') + ';border-radius:10px;background:' + (isDeclared ? '#f0fdf4' : '#fff') + '">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+            '<b style="font-size:13px;color:var(--navy)">Option B: Statutory Health & Vision Self-Declaration</b>' +
+            (isDeclared ? '<span class="tag green">✓ Certified</span>' : '<span class="tag amber">Self-Attestation</span>') +
             '</div>' +
-            '<div style="padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:12px;color:#166534">' +
-            '<b>✓ Form 1-A Tele-Consultation Linked:</b> Your digital health ID (ABHA) has pre-verified your fitness certificate.' +
+            '<label style="display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#334155;cursor:pointer">' +
+            '<input type="checkbox" ' + (isDeclared ? 'checked' : '') + ' onchange="state.idpSelfDeclared=this.checked;render()" style="width:18px;height:18px;margin-top:2px"> ' +
+            '<span>I certify that I possess normal 6/6 visual acuity, no night blindness, full movement of limbs, and no history of cardiovascular or neurological seizures.</span>' +
+            '</label>' +
+            '</div>' +
+
             '</div>';
 
-            foot = '<button class="btn secondary" onclick="prevIdp()">Back</button><button class="btn primary" onclick="nextIdp()">Verify License & Classes →</button>';
+            var medHint = medReady ? '' : '<div style="width:100%;text-align:center;font-size:12px;color:#b45309;font-weight:600;margin-top:6px">👆 Complete Option A (ABDM Sync) or Option B (Self-Declaration) to proceed</div>';
+
+            foot = '<div style="display:flex;flex-direction:column;width:100%;gap:6px">' +
+            '<div style="display:flex;justify-content:flex-end;gap:10px;width:100%">' +
+            '<button class="btn secondary" onclick="prevIdp()">Back</button>' +
+            '<button class="btn primary" ' + (medReady ? '' : 'disabled') + ' onclick="nextIdp()">Verify License & Classes →</button>' +
+            '</div>' +
+            medHint +
+            '</div>';
         } else if (step === 2) {
             body = '<div class="notice success"><b>Valid Indian Driving License Attached</b></div>' +
             '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:16px 0">' +
@@ -1427,24 +1451,48 @@ if(state.modal==='challan')return challanModal();if(state.modal==='transfer')ret
 
             foot = '<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="nextRenew()">Proceed to Medical Fitness →</button>';
         } else if (step === 1) {
-            body = '<div class="notice info"><b>Medical Fitness Declaration (Form 1 / Form 1-A)</b><br>Non-transport vehicle owners can submit a self-declaration or link an ABDM digital medical certificate.</div>' +
-            '<div class="field" style="margin-top:16px">' +
-            '<label style="display:flex;align-items:flex-start;gap:12px;padding:12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer">' +
-            '<input type="checkbox" checked style="width:18px;height:18px;margin-top:2px"> ' +
-            '<span><b>Form 1 Self-Declaration (Physical Fitness)</b><br><small style="color:#64748b;font-size:11px">I declare that I do not suffer from epilepsy, sudden attacks of giddiness, color blindness, or disabling vision impairment.</small></span>' +
+            var isSynced = state.renewMedSynced || false;
+            var isDeclared = state.renewSelfDeclared || false;
+            var medReady = isSynced || isDeclared;
+
+            body = '<div class="notice info"><b>Medical Fitness Declaration (CMVR Rule 5 / Form 1 & 1-A)</b><br>For renewing non-transport driving licenses under age 40, a self-declaration is sufficient. For commercial or 40+ categories, a certified medical certificate (Form 1-A) is required.</div>' +
+            '<div style="margin-top:16px;display:grid;gap:12px">' +
+            
+            // Route 1: Form 1 Self-Declaration
+            '<div style="padding:14px;border:1.5px solid ' + (isDeclared ? '#86efac' : '#cbd5e1') + ';border-radius:10px;background:' + (isDeclared ? '#f0fdf4' : '#fff') + '">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+            '<b style="font-size:13px;color:var(--navy)">Route 1: Form 1 Self-Declaration of Physical Fitness</b>' +
+            (isDeclared ? '<span class="tag green">✓ Self-Certified</span>' : '<span class="tag amber">Requires Check</span>') +
+            '</div>' +
+            '<label style="display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#334155;cursor:pointer">' +
+            '<input type="checkbox" id="chk-renew-form1" ' + (isDeclared ? 'checked' : '') + ' onchange="state.renewSelfDeclared=this.checked;render()" style="width:18px;height:18px;margin-top:2px"> ' +
+            '<span><b>I declare under penalty of law:</b> I do not suffer from epilepsy, giddiness, night blindness, cardiac defects, or muscular impairment that would render driving dangerous.</span>' +
             '</label>' +
             '</div>' +
-            '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-top:14px">' +
+
+            // Route 2: ABDM Health Locker Sync
+            '<div style="padding:14px;border:1.5px solid ' + (isSynced ? '#86efac' : '#cbd5e1') + ';border-radius:10px;background:' + (isSynced ? '#f0fdf4' : '#fff') + '">' +
             '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
-            '<span style="font-size:11px;color:#166534;font-weight:800;text-transform:uppercase">ABDM Health Locker Sync</span>' +
-            '<span class="tag green">✓ Form 1-A Synced</span>' +
+            '<b style="font-size:13px;color:var(--navy)">Route 2: ABDM Health Locker Sync (Form 1-A Doctor Certificate)</b>' +
+            (isSynced ? '<span class="tag green">✓ Form 1-A Synced</span>' : '<span class="tag blue">Digital Health ID</span>') +
             '</div>' +
-            '<div style="font-size:12px;color:var(--navy);line-height:1.5">' +
-            'Dr. Arvind Kulkarni (KMC-49210) · Tele-certified Ophthalmological Acuity 6/6 · Valid till 2027.' +
+            '<p style="font-size:12px;color:#64748b;margin:0 0 10px">Fetch official clinical tele-fitness certification from a registered medical practitioner.</p>' +
+            (isSynced 
+                ? '<div style="font-size:12px;color:#166534;background:#fff;padding:10px;border-radius:8px;border:1px solid #bbf7d0">✓ Verified: Dr. Arvind Kulkarni (KMC-49210) · Tele-certified Ophthalmological Acuity 6/6 (Valid till 2027)</div>'
+                : '<button class="btn primary small" style="background:var(--blue);color:#fff;font-weight:700" onclick="renewSyncMedical()">⚡ Fetch Form 1-A via ABHA →</button>') +
             '</div>' +
+
             '</div>';
 
-            foot = '<button class="btn secondary" onclick="prevRenew()">Back</button><button class="btn primary" onclick="nextRenew()">Authenticate via Aadhaar e-KYC →</button>';
+            var medHint = medReady ? '' : '<div style="width:100%;text-align:center;font-size:12px;color:#b45309;font-weight:600;margin-top:6px">👆 Check Form 1 Self-Declaration or Sync via ABDM above to unlock next step</div>';
+
+            foot = '<div style="display:flex;flex-direction:column;width:100%;gap:6px">' +
+            '<div style="display:flex;justify-content:flex-end;gap:10px;width:100%">' +
+            '<button class="btn secondary" onclick="prevRenew()">Back</button>' +
+            '<button class="btn primary" ' + (medReady ? '' : 'disabled') + ' onclick="nextRenew()">Authenticate via Aadhaar e-KYC →</button>' +
+            '</div>' +
+            medHint +
+            '</div>';
         } else if (step === 2) {
             body = '<div class="notice success"><b>Aadhaar Biometric e-KYC Verified</b></div>' +
             '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:16px 0">' +
@@ -1791,6 +1839,19 @@ window.payIdp = function() {
     state.idpStep = 4;
     save();
     render();
+};
+
+
+window.idpSyncMedical = function() {
+    state.idpMedSynced = true;
+    render();
+    alertToast('ABDM Synced', 'Form 1-A Medical Certificate linked from Dr. Arvind Kulkarni (KMC-49210).');
+};
+
+window.renewSyncMedical = function() {
+    state.renewMedSynced = true;
+    render();
+    alertToast('ABDM Synced', 'Form 1-A Medical Certificate linked from Dr. Arvind Kulkarni (KMC-49210).');
 };
 
 window.openRenewDl = function() {
