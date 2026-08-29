@@ -627,7 +627,8 @@ function auth(){
 
     var challanNotice=state.challanStatus==='paid'?'':(state.challanStatus==='disputed'?'<div class="attention-row"><div class="attention-icon amber" style="font-size:16px">⚖</div><div><b>Challan under dispute</b><span>KA 01 MT 4582 · Virtual Court review pending.</span></div><button class="link" onclick="openChallan()">View</button></div>':'<div class="attention-row"><div class="attention-icon red">₹</div><div><b>₹500 challan needs attention</b><span>KA 01 MT 4582 · Speed-limit violation</span></div><button class="link" onclick="openChallan()">View action</button></div>');
     var pucNotice='<div class="attention-row"><div class="attention-icon amber">◷</div><div><b>PUC expires in 7 days</b><span>KA 01 MT 4582 · Renew before 04 Sep to stay compliant.</span></div><button class="link" onclick="alertToast(\'PUC reminder enabled\',\'Email and SMS reminders are set for 7 and 1 day before expiry.\')">Set reminder</button></div>';
-    var alerts='<div class="attention">'+pucNotice+challanNotice+'</div>';
+    var idpDraftNotice = (state.idpDraft && !state.idpBloodUploaded) ? '<div class="attention-row"><div class="attention-icon blue" style="font-size:16px">✈️</div><div><b>Draft IDP Application (IDP-DR-8821)</b><span>Doctor Form 1-A approved · Pending Blood Test Upload.</span></div><button class="link" onclick="openIdp()">Resume</button></div>' : '';
+    var alerts='<div class="attention">'+idpDraftNotice+pucNotice+challanNotice+'</div>';
     
     var svcFilter = state.overviewServiceFilter || 'all';
 
@@ -1409,23 +1410,26 @@ if(state.modal==='challan')return challanModal();if(state.modal==='transfer')ret
             body = '<div class="notice warning"><b>Mandatory Blood Group & Diagnostic Serology Upload</b><br>International licensing conventions require official lab confirmation of blood group marker and vital metabolic baseline before operating vehicles abroad.</div>' +
             '<div style="margin-top:16px">' +
             '<label style="font-size:12px;font-weight:800;color:var(--navy);display:block;margin-bottom:8px">Attach Diagnostic Blood Test Report (Form 1-A Annexure)</label>' +
-            '<div style="border: 2px dashed ' + (isUploaded ? '#16a34a' : '#cbd5e1') + '; padding: 22px; text-align: center; border-radius: 10px; background:' + (isUploaded ? '#f0fdf4' : '#f8fafc') + '; cursor: pointer;" onclick="uploadIdpBloodReport()">' +
+            '<div style="border: 2px dashed ' + (isUploaded ? '#16a34a' : '#cbd5e1') + '; padding: 20px; text-align: center; border-radius: 10px; background:' + (isUploaded ? '#f0fdf4' : '#f8fafc') + '; cursor: pointer;" onclick="uploadIdpBloodReport()">' +
             (isUploaded 
                 ? '<div><span style="font-size:32px">🩸</span><br><b style="color:#166534;font-size:14px;display:block;margin-top:6px">Blood_Report_Serology_O_Positive.pdf</b><span class="tag green" style="margin-top:6px;display:inline-block">✓ Verified NABL Accredited Lab</span><p style="font-size:11px;color:#15803d;margin:6px 0 0">Blood Group: <b>O+ Positive</b> · Fasting Glucose: <b>94 mg/dL (Normal)</b> · Hemoglobin: <b>14.2 g/dL</b></p></div>'
                 : '<div><span style="font-size:32px">📁</span><br><b style="color:var(--navy);font-size:14px;display:block;margin-top:6px">Tap / Click to Upload Blood Test Report</b><small style="color:#64748b;font-size:12px">Accepted formats: PDF, JPG, PNG (Max 5MB)</small><br><span class="tag amber" style="margin-top:8px;display:inline-block">Required for International Permit</span></div>') +
             '</div>' +
             '</div>' +
-            '<div style="margin-top:12px;font-size:11px;color:#64748b;line-height:1.5">' +
-            'ℹ️ <b>Why is this needed?</b> Foreign road authorities in Geneva Convention signatory nations require confirmed blood typing in case of emergency overseas trauma response.' +
+            '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">' +
+            '<div><b style="font-size:12px;color:var(--navy);display:block">Don\'t have the blood report right now?</b><span style="font-size:11px;color:#64748b">Save your progress with Form 1-A intact and upload once you visit the lab.</span></div>' +
+            '<button class="btn secondary small" style="white-space:nowrap;font-size:11px;height:32px" onclick="saveIdpDraft()">💾 Save Draft & Exit</button>' +
             '</div>';
 
-            var bloodHint = isUploaded ? '' : '<div style="width:100%;text-align:center;font-size:12px;color:#b45309;font-weight:600;margin-top:6px">👆 Please upload your diagnostic blood test report above to continue</div>';
+            var bloodHint = isUploaded ? '' : '<div style="width:100%;text-align:center;font-size:12px;color:#b45309;font-weight:600;margin-top:6px">👆 Click box above to attach report, or Save Draft to resume later</div>';
 
             foot = '<div style="display:flex;flex-direction:column;width:100%;gap:6px">' +
-            '<div style="display:flex;justify-content:flex-end;gap:10px;width:100%">' +
-            '<button class="btn secondary" onclick="prevIdp()">Back</button>' +
-            '<button class="btn primary" ' + (isUploaded ? '' : 'disabled') + ' onclick="nextIdp()">Verify License Classes →</button>' +
-            '</div>' +
+            '<div style="display:flex;justify-content:space-between;gap:10px;width:100%">' +
+            '<button class="btn secondary" onclick="prevIdp()">← Back</button>' +
+            '<div style="display:flex;gap:8px">' +
+            '<button class="btn secondary" onclick="saveIdpDraft()">💾 Save Draft</button>' +
+            '<button class="btn primary" ' + (isUploaded ? '' : 'disabled') + ' onclick="nextIdp()">Proceed to License Classes →</button>' +
+            '</div></div>' +
             bloodHint +
             '</div>';
         } else if (step === 3) {
@@ -1903,11 +1907,27 @@ window.startExistingLogin = function() {
 };
 
 window.beginLogin=function(role){if(role==='applicant') window.startLLFlow(); else window.startExistingLogin();};window.goHome=function(){state.screen='landing';render()};window.method=function(m){state.method=m;render()};window.authRole=function(r){state.authRole=r;render()};window.sendOtp=function(){state.authStep='otp';render()};window.verifyOtp=function(){var o=document.getElementById('otp');if(!o||o.value!=='123456'){notify('Try the demo OTP','Enter 123456 to continue.');return}state.role=state.authRole;state.screen='dashboard';state.active='overview';state.detail=false;if(state.role==='buyer'&&state.transfer.inviteSent&&!state.transfer.buyerAccepted){state.modal='buyer-invite'}save();render()};window.logout=function(){state.screen='landing';state.active='overview';render()};window.section=function(x){state.active=x;state.detail=false;render()};window.selectCar=function(id){state.selected=id;state.active='overview';state.detail=false;render()};window.showCar=function(id){state.selected=id;state.active='vehicles';state.detail=true;render()};window.backCars=function(){state.detail=false;render()};window.alertToast=function(a,b){notify(a,b)};window.openChallan=function(){state.challanStep=0;state.modal='challan';render()};window.contestChallan=function(){state.challanStep=1;render()};window.submitContest=function(){state.challanStatus='disputed';localStorage.setItem('rr-challan-status', 'disputed');state.modal='success';state.successTitle='Dispute Submitted';state.successBody='Your dispute has been forwarded to the Virtual Traffic Court. The payment deadline is frozen pending review.';save();render()};window.stopWebcam=function(){if(window.currentWebcamStream){window.currentWebcamStream.getTracks().forEach(function(t){t.stop()});window.currentWebcamStream=null}var v=document.getElementById('webcam-feed');if(v)v.srcObject=null};window.closeModal=function(){window.stopWebcam();state.modal=null;state.kycStep=0;render()};window.payChallan=function(){state.challanPaid=true;state.challanStatus='paid';localStorage.setItem('rr-challan', 'true');localStorage.setItem('rr-challan-status', 'paid');state.modal='success';state.successTitle='Challan payment complete';state.successBody='₹500 was paid in this mock flow. Receipt RR-CH-2048 is now in your payment history.';save();render()};window.openTransfer=function(){state.transferStep=0;state.modal='transfer';render()};window.nextTransfer=function(){if(state.transferStep===1){var n=document.getElementById('buyer-name'),m=document.getElementById('buyer-mobile');state.transfer.buyerName=n&&n.value.trim()?n.value.trim():'Rohan Shah';state.transfer.buyerMobile=m&&m.value.trim()?m.value.trim():'98 7654 3210'}state.transferStep=Math.min(2,state.transferStep+1);render()};window.prevTransfer=function(){state.transferStep=Math.max(0,state.transferStep-1);render()};window.sendInvite=function(){state.transfer.inviteSent=true;state.transfer.status='Waiting for buyer';state.modal='success';state.successTitle='Buyer invited securely';state.successBody=(state.transfer.buyerName||'Rohan Shah')+' can now review and accept transfer from their own dashboard.';save();render()};window.switchRole=function(r){state.role=r;state.active='transfers';state.detail=false;if(r==='buyer'&&state.transfer.inviteSent&&!state.transfer.buyerAccepted){state.modal='buyer-invite'}save();render()};window.buyerAccept=function(){state.transfer.buyerAccepted=true;state.transfer.status='Remote verification pending';state.modal='success';state.successTitle='Transfer accepted';state.successBody='You can now complete remote identity and consent verification.';save();render()};window.openBuyerInvite=function(){state.modal='buyer-invite';render()};window.rejectTransfer=function(){state.transfer=Object.assign({},defaults);state.transfer.status='Rejected by buyer';state.modal='success';state.successTitle='Transfer rejected';state.successBody='You have rejected the ownership transfer request.';save();render()};window.openKyc=function(r){state.modal=r==='seller'?'kyc-seller':'kyc-buyer';state.kycStep=0;render()};window.nextKyc=function(r){if(state.kycStep<3){state.kycStep+=1;render();return}window.stopWebcam();if(r==='seller')state.transfer.sellerKyc=true;else state.transfer.buyerKyc=true;if(state.transfer.sellerKyc&&state.transfer.buyerKyc){state.transfer.submitted=true;state.transfer.status='Under RTO review';state.successTitle='Remote verification complete';state.successBody='Both parties are verified. Transfer is submitted for mock '+car().state+' RTO review.'}else{state.transfer.status=state.transfer.buyerAccepted?'Remote verification pending':'Waiting for buyer';state.successTitle='Seller verification complete';state.successBody='Buyer will complete their own verification from their dashboard.'}state.modal='success';save();render()};window.resetTransfer=function(){state.transfer=Object.assign({},defaults);state.role='seller';save();notify('Demo reset','Ownership-transfer flow is ready to run again.')};window.openVehicleVerify=function(){state.modal='vehicle-verify';state.vehicleVerifyStep=0;render()};window.runVehicleAI=function(){var p1=document.getElementById('v-photo-1'),p2=document.getElementById('v-photo-2');if(!p1||!p2||p1.style.display==='none'||p2.style.display==='none'){alertToast('Missing photos','Please attach both photos first.');return}state.vehicleVerifyStep=1;render();setTimeout(function(){var st=document.getElementById('ai-status');if(st)st.innerText='Analyzing image EXIF data...'},1200);setTimeout(function(){var st=document.getElementById('ai-status');if(st)st.innerText='Cross-referencing chassis VIN database...'},2400);setTimeout(function(){state.transfer.vehicleVerified=true;state.modal='success';state.successTitle='Vehicle Verified';state.successBody='AI Scan complete. No deepfakes or manipulation detected. Chassis matches VAHAN database securely.';save();render()},3800)};window.openHsrp=function(){state.modal='hsrp';state.hsrpStep=0;render()};window.nextHsrp=function(){state.hsrpStep=1;render()};window.prevHsrp=function(){state.hsrpStep=0;render()};window.payHsrp=function(){hsrpBooked=true;state.modal='success';state.successTitle='HSRP Booked';state.successBody='Your HSRP has been booked successfully. The agent will visit on the selected date for fitment.';save();render()};window.openNoc=function(){state.modal='noc';state.nocStep=0;render()};window.requestNoc=function(){state.nocStep=1;render();setTimeout(function(){var st=document.getElementById('noc-status');if(st)st.innerText='Loan closure verified! Generating cryptographic NOC...'},1500);setTimeout(function(){nocCleared=true;state.modal='success';state.successTitle='Digital NOC Received';state.successBody='HDFC Bank has confirmed the loan is closed. The hypothecation block has been removed digitally. You can now transfer ownership.';save();render()},3200)};window.openDuplicateRc=function(){state.dupRcStep=0;state.modal='duplicate-rc';render()};window.nextDupRc=function(){state.dupRcStep=1;render()};window.prevDupRc=function(){state.dupRcStep=0;render()};window.payDupRc=function(){recordPayment("Duplicate RC", 500);state.modal='success';state.successTitle='Duplicate RC Request Submitted';state.successBody='₹500 paid. A digital duplicate RC is now available in your documents. The physical card will arrive in 7 days.';render()};
+
+window.saveIdpDraft = function() {
+    state.idpDraft = true;
+    state.idpDraftStep = 2;
+    state.idpDraftAppNo = 'IDP-DR-8821';
+    state.modal = null;
+    save();
+    render();
+    alertToast('IDP Draft Saved', 'Application #IDP-DR-8821 saved. Doctor Form 1-A is preserved. Resume anytime once lab results arrive.');
+};
+
 window.openIdp = function() {
     state.modal = 'idp';
-    state.idpStep = 0;
+    if (state.idpDraft && !state.idpBloodUploaded) {
+        state.idpStep = state.idpDraftStep || 2;
+    } else {
+        state.idpStep = 0;
+    }
     render();
 };
+
 
 window.nextIdp = function() {
     state.idpStep = (state.idpStep || 0) + 1;
@@ -1921,7 +1941,7 @@ window.prevIdp = function() {
 
 window.payIdp = function() {
     recordPayment("International Driving Permit (Form 4A)", 1000);
-    state.idpStep = 4;
+    state.idpStep = 5;
     save();
     render();
 };
