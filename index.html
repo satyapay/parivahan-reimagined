@@ -507,7 +507,7 @@ function auth(){
     function overview(){
     if(state.role === 'applicant') {
         // State 4: Permanent DL Dispatched & Active
-        if(state.dlStatus === 'dispatched') {
+        if(state.dlStatus === 'dispatched' && !state.hasOwnedVehicles) {
             return '<div class="section"><div class="intro"><div><h1>Welcome, Certified Driver</h1><p>Congratulations! Your Permanent Driving License (DL) is active and your Smart Card is in transit.</p></div></div>' +
             '<div class="grid"><div class="stack">' +
             '<div class="card pad" style="border-top:4px solid #138808;background:linear-gradient(135deg, #ffffff, #f0fdf4)">' +
@@ -534,6 +534,17 @@ function auth(){
             '<div class="timeline-row"><i class="dot done"></i><div><b>4. Permanent DL Issued</b><span>Digital & physical smart card</span></div></div>' +
             '</div>' +
             '</div>' +
+            
+            // Fast Forward to Vehicle Ownership Card
+            '<div class="card pad" style="background:linear-gradient(135deg, #0b1f3a, #000080);color:#fff;border-radius:12px;margin-top:16px;box-shadow:0 8px 24px rgba(0,0,128,0.25)">' +
+            '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">' +
+            '<div style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.18);display:grid;place-items:center;font-size:22px">🚗</div>' +
+            '<div><span class="tag amber" style="font-size:10px;margin-bottom:2px">Next Chapter: Vehicle Ownership</span><h3 style="color:#fff;margin:0;font-size:16px">Step Into Vehicle Ownership</h3></div>' +
+            '</div>' +
+            '<p style="font-size:12px;color:#cbd5e1;line-height:1.5;margin:0 0 16px">Fast-forward 6 months: Rohan has purchased his vehicles! Unlock your registered fleet, RC cards, P2P transfer room, Virtual Traffic Court, and International Driving Permits.</p>' +
+            '<button class="btn primary" style="width:100%;background:#ff9933;color:#0b1f3a;font-weight:800;font-size:14px;border:none;box-shadow:0 4px 12px rgba(0,0,0,0.3)" onclick="fastForwardToVehicleOwner()">🚀 Fast-Forward to Vehicle Owner (Full Dashboard) →</button>' +
+            '</div>' +
+
             '</div></div></div>';
         }
 
@@ -769,6 +780,18 @@ window.payDLFee = function() {
     save();
     render();
 };
+
+window.fastForwardToVehicleOwner = function() {
+    state.hasOwnedVehicles = true;
+    state.role = 'seller'; // Unlocks full dashboard with Rohan's vehicles
+    state.dlNumber = 'MH-12-DL-2026-004821';
+    state.dlStatus = 'dispatched';
+    state.active = 'overview';
+    save();
+    render();
+    alertToast('🚗 Welcome to Vehicle Ownership!', 'Rohan Shah now owns registered vehicles with full RC management, P2P transfers, and e-Challan tools!');
+};
+
 window.simulateTestPassed = function() {
     state.dlStatus = 'dispatched';
     localStorage.setItem('rr-dl-status', 'dispatched');
@@ -815,6 +838,11 @@ window.llFetchAllDocs = function() {
     state.llDocs = 2;
     render();
     alertToast('DigiLocker Sync Complete', 'Both Proof of Age and Proof of Address fetched and verified!');
+};
+
+window.llSign = function() {
+    state.llSigned = true;
+    render();
 };
 
 window.llClearSign = function() {
