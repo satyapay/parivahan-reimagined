@@ -1227,6 +1227,231 @@ if(state.modal==='challan')return challanModal();if(state.modal==='transfer')ret
     }
 
     
+    
+    /* =========================================================================
+       1. INTERNATIONAL DRIVING PERMIT (IDP) - FORM 4A (1949 GENEVA CONVENTION)
+       ========================================================================= */
+    function idpModal() {
+        var step = state.idpStep || 0;
+        var totalFee = 1000;
+        var countries = [
+            'United States of America (USA)', 'United Kingdom (UK)', 'United Arab Emirates (UAE)',
+            'Germany', 'Australia', 'Canada', 'Singapore', 'France', 'Japan', 'Switzerland', 'Other 1949 Convention Nation'
+        ];
+        
+        var head = '<div class="stepper">' +
+            '<div class="step ' + (step === 0 ? 'active' : step > 0 ? 'done' : '') + '">1 · Travel Details</div>' +
+            '<div class="step ' + (step === 1 ? 'active' : step > 1 ? 'done' : '') + '">2 · Medical & DL</div>' +
+            '<div class="step ' + (step === 2 ? 'active' : step > 2 ? 'done' : '') + '">3 · Documents</div>' +
+            '<div class="step ' + (step === 3 ? 'active' : step > 3 ? 'done' : '') + '">4 · Fee (₹1000)</div>' +
+            '<div class="step ' + (step === 4 ? 'active' : '') + '">5 · Issued</div>' +
+            '</div>';
+            
+        var body = '', foot = '';
+
+        if (step === 0) {
+            body = '<div class="notice info"><b>Form 4A: Application for International Driving Permit</b><br>As per CMVR 1989 & 1949 Geneva Convention, an IDP allows you to drive non-commercial vehicles abroad in 150+ signatory countries.</div>' +
+            '<div class="form-grid" style="margin-top:16px">' +
+            '<div class="field"><label>Destination Country</label>' +
+            '<select class="input" id="idp-country">' + countries.map(function(c){ return '<option ' + (c.startsWith('United States') ? 'selected' : '') + '>' + c + '</option>'; }).join('') + '</select>' +
+            '</div>' +
+            '<div class="field"><label>Visa Type</label>' +
+            '<select class="input" id="idp-visa"><option>Tourist / Visitor (B1/B2, Standard Visitor)</option><option>Business / Conference</option><option>Employment / Work</option><option>Student Visa</option></select>' +
+            '</div>' +
+            '<div class="field"><label>Indian Passport Number</label>' +
+            '<input class="input" id="idp-passport" value="Z-8912401" style="text-transform:uppercase;font-weight:700;letter-spacing:1px">' +
+            '</div>' +
+            '<div class="field"><label>Passport Expiry Date</label>' +
+            '<input class="input" type="date" value="2034-08-15">' +
+            '</div>' +
+            '<div class="field full"><label>Tentative Date of Travel / Flight Reference</label>' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+            '<input class="input" type="date" value="2026-10-15">' +
+            '<input class="input" placeholder="Flight / PNR No. (e.g. AI-101 / 6E-204)" value="AI-101 (Del-JFK)">' +
+            '</div></div>' +
+            '</div>';
+
+            foot = '<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="nextIdp()">Proceed to Medical Fitness →</button>';
+        } else if (step === 1) {
+            body = '<div class="notice info"><b>Form 1-A: Medical Fitness for International Driving</b><br>Driving abroad requires verified physical fitness, stereoscopic visual acuity, and absence of color blindness.</div>' +
+            '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:16px 0">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
+            '<span style="font-size:12px;color:#166534;font-weight:800;text-transform:uppercase">ABDM Digital Medical Sync</span>' +
+            '<span class="tag green">✓ Doctor Verified</span>' +
+            '</div>' +
+            '<div class="metrics">' +
+            '<div class="metric"><span>Certified Practitioner</span><b>Dr. Arvind Kulkarni (Reg: KMC-49210)</b></div>' +
+            '<div class="metric"><span>Visual Acuity</span><b>6/6 in both eyes (Normal)</b></div>' +
+            '<div class="metric"><span>Color Vision (Ishihara Test)</span><b>Normal Trichromatic</b></div>' +
+            '<div class="metric"><span>Hearing & Neurological Reflexes</span><b>Satisfactory</b></div>' +
+            '</div>' +
+            '</div>' +
+            '<div style="padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:12px;color:#166534">' +
+            '<b>✓ Form 1-A Tele-Consultation Linked:</b> Your digital health ID (ABHA) has pre-verified your fitness certificate.' +
+            '</div>';
+
+            foot = '<button class="btn secondary" onclick="prevIdp()">Back</button><button class="btn primary" onclick="nextIdp()">Verify License & Classes →</button>';
+        } else if (step === 2) {
+            body = '<div class="notice success"><b>Valid Indian Driving License Attached</b></div>' +
+            '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:16px 0">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
+            '<span style="font-weight:700;color:var(--navy);font-size:14px">License: ' + (state.dlNumber || 'KA-01-2015-004821') + '</span>' +
+            '<span class="tag blue">Active</span>' +
+            '</div>' +
+            '<div class="attention">' +
+            '<div class="attention-row"><div class="attention-icon blue">🚗</div><div><b>Category B (Light Motor Vehicle)</b><span>Permits driving private cars & rental vehicles up to 3,500 kg</span></div><div class="check" style="background:#16a34a;color:#fff;border:none">✓</div></div>' +
+            '<div class="attention-row"><div class="attention-icon blue">🛵</div><div><b>Category A (Motorcycles)</b><span>Two-wheelers with/without sidecar</span></div><div class="check" style="background:#16a34a;color:#fff;border:none">✓</div></div>' +
+            '</div>' +
+            '</div>' +
+            '<div style="font-size:12px;color:#64748b;line-height:1.5">' +
+            '🔒 <b>Geneva Convention Compliance:</b> Your official digital signature, high-contrast photo, and English translation will be embossed on the standard multi-lingual IDP booklet.' +
+            '</div>';
+
+            foot = '<button class="btn secondary" onclick="prevIdp()">Back</button><button class="btn primary" onclick="nextIdp()">Proceed to Fee Payment →</button>';
+        } else if (step === 3) {
+            body = '<div class="notice info"><b>Statutory IDP Fee Schedule</b><br>Standardized statutory fee applicable across all Indian RTO jurisdictions under CMVR Rule 14.</div>' +
+            '<div class="metrics" style="margin:18px 0">' +
+            '<div class="metric"><span>International Driving Permit Application Fee (Form 4A)</span><b>₹1,000</b></div>' +
+            '<div class="metric"><span>Multi-Lingual Booklet & Biometric Security Seal</span><b style="color:var(--green)">Included (₹0)</b></div>' +
+            '<div class="metric"><span>India Post Speed Post Dispatch / Counter Pickup</span><b style="color:var(--green)">Included (₹0)</b></div>' +
+            '<div class="metric"><span style="font-weight:700;color:var(--navy)">Total Government Fee</span><b style="font-size:18px;color:var(--navy)">₹1,000</b></div>' +
+            '</div>' +
+            '<div style="padding:12px;background:#f8fafc;border:1px solid #dce5ef;border-radius:8px;font-size:12px;color:#64748b">' +
+            '💳 <b>Bharat BillPay (BBPS):</b> Instant digital clearance. Tax invoice & receipt will be generated automatically.' +
+            '</div>';
+
+            foot = '<button class="btn secondary" onclick="prevIdp()">Back</button><button class="btn primary" onclick="payIdp()">Pay ₹1,000 Securely →</button>';
+        } else if (step === 4) {
+            body = '<div class="success-box" style="background:#f0fdf4;color:#166534">' +
+            '<i style="background:#dcfce7;color:#15803d;font-size:26px;display:grid;place-items:center;width:50px;height:50px;margin:0 auto 12px;border-radius:50%;font-style:normal">✈️</i>' +
+            '<h3 style="font-size:19px">International Driving Permit Issued!</h3>' +
+            '<p style="font-size:13px;margin-top:4px">Permit Reference: <b>IDP-IN-2026-98124</b> · Payment receipt RR-IDP-9214</p>' +
+            '</div>' +
+            '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:16px 0">' +
+            '<div class="metrics">' +
+            '<div class="metric"><span>Validity Period</span><b style="color:#166534">1 Year (Valid till 29 Aug 2027)</b></div>' +
+            '<div class="metric"><span>Authorized Countries</span><b>150+ Nations (1949 Geneva Convention)</b></div>' +
+            '<div class="metric"><span>Vehicle Classes</span><b>Category A (Two-Wheeler), Category B (Car)</b></div>' +
+            '<div class="metric"><span>Speed Post Tracking</span><b style="color:var(--blue)">IN892184029IN</b></div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="attention">' +
+            '<div class="attention-row"><div class="attention-icon green">📄</div><div><b>Digital IDP Booklet (PDF)</b><span>Multilingual English, French, Spanish, Russian, Arabic, Hindi</span></div><button class="link" onclick="downloadDocument(\'International_Driving_Permit_IN98124.pdf\')">Download PDF</button></div>' +
+            '</div>';
+
+            foot = '<button class="btn primary" onclick="closeModal()">Return to Dashboard</button>';
+        }
+
+        return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>International Driving Permit (IDP)</h2><p>Form 4A · 1949 Geneva Convention</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">' + head + body + '</div><footer class="modal-foot">' + foot + '</footer></section></div>';
+    }
+
+    /* =========================================================================
+       2. DRIVING LICENSE RENEWAL - FORM 9 & FORM 1-A (MVA 2019 / CMVR)
+       ========================================================================= */
+    function renewDlModal() {
+        var step = state.renewStep || 0;
+        var totalFee = 400; // Rs 200 Renewal + Rs 200 Smart Card
+        var curName = (state.role === 'buyer' ? 'Rohan Shah' : 'Ananya Rao');
+        var curDL = (state.role === 'applicant' && state.dlStatus === 'dispatched') ? state.dlNumber : 'KA-01-2015-004821';
+        
+        var head = '<div class="stepper">' +
+            '<div class="step ' + (step === 0 ? 'active' : step > 0 ? 'done' : '') + '">1 · Eligibility</div>' +
+            '<div class="step ' + (step === 1 ? 'active' : step > 1 ? 'done' : '') + '">2 · Medical Fitness</div>' +
+            '<div class="step ' + (step === 2 ? 'active' : step > 2 ? 'done' : '') + '">3 · e-KYC Sync</div>' +
+            '<div class="step ' + (step === 3 ? 'active' : step > 3 ? 'done' : '') + '">4 · Fee (₹400)</div>' +
+            '<div class="step ' + (step === 4 ? 'active' : '') + '">5 · Renewed</div>' +
+            '</div>';
+            
+        var body = '', foot = '';
+
+        if (step === 0) {
+            body = '<div class="notice info"><b>Form 9: Application for Renewal of Driving License</b><br>Under Section 15 of the Motor Vehicles Act, you can renew your DL up to 1 year before expiry or within the statutory grace window without any driving re-test.</div>' +
+            '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:16px 0">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
+            '<span style="font-size:11px;color:#64748b;font-weight:800;text-transform:uppercase">Current License Record</span>' +
+            '<span class="tag amber">Expiring Soon</span>' +
+            '</div>' +
+            '<div class="metrics">' +
+            '<div class="metric"><span>License Number</span><b style="letter-spacing:1px">' + curDL + '</b></div>' +
+            '<div class="metric"><span>Cardholder Name</span><b>' + curName + '</b></div>' +
+            '<div class="metric"><span>Current Expiry Date</span><b style="color:#b45309">15 Sep 2026 (18 days remaining)</b></div>' +
+            '<div class="metric"><span>Grace Period Window</span><b>Active (No late fees applicable)</b></div>' +
+            '<div class="metric" style="grid-column:1/-1"><span>Smart Card Postal Address</span><b style="line-height:1.4">' + (state.dlAddress || 'A-12, Sector 4, HSR Layout, Bengaluru, Karnataka - 560102') + '</b></div>' +
+            '</div>' +
+            '</div>' +
+            '<div style="padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:12px;color:#166534">' +
+            '<b>✓ Eligibility Confirmed:</b> Your license is in the standard renewal window. Renewal will grant a fresh 10-year validity.' +
+            '</div>';
+
+            foot = '<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="nextRenew()">Proceed to Medical Fitness →</button>';
+        } else if (step === 1) {
+            body = '<div class="notice info"><b>Medical Fitness Declaration (Form 1 / Form 1-A)</b><br>Non-transport vehicle owners can submit a self-declaration or link an ABDM digital medical certificate.</div>' +
+            '<div class="field" style="margin-top:16px">' +
+            '<label style="display:flex;align-items:flex-start;gap:12px;padding:12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer">' +
+            '<input type="checkbox" checked style="width:18px;height:18px;margin-top:2px"> ' +
+            '<span><b>Form 1 Self-Declaration (Physical Fitness)</b><br><small style="color:#64748b;font-size:11px">I declare that I do not suffer from epilepsy, sudden attacks of giddiness, color blindness, or disabling vision impairment.</small></span>' +
+            '</label>' +
+            '</div>' +
+            '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-top:14px">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+            '<span style="font-size:11px;color:#166534;font-weight:800;text-transform:uppercase">ABDM Health Locker Sync</span>' +
+            '<span class="tag green">✓ Form 1-A Synced</span>' +
+            '</div>' +
+            '<div style="font-size:12px;color:var(--navy);line-height:1.5">' +
+            'Dr. Arvind Kulkarni (KMC-49210) · Tele-certified Ophthalmological Acuity 6/6 · Valid till 2027.' +
+            '</div>' +
+            '</div>';
+
+            foot = '<button class="btn secondary" onclick="prevRenew()">Back</button><button class="btn primary" onclick="nextRenew()">Authenticate via Aadhaar e-KYC →</button>';
+        } else if (step === 2) {
+            body = '<div class="notice success"><b>Aadhaar Biometric e-KYC Verified</b></div>' +
+            '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:16px 0">' +
+            '<div class="attention">' +
+            '<div class="attention-row"><div class="attention-icon blue">🆔</div><div><b>Aadhaar UIDAI Linkage</b><span>XXXX-XXXX-4921 · Biometrically Authenticated</span></div><div class="check" style="background:#16a34a;color:#fff;border:none">✓</div></div>' +
+            '<div class="attention-row"><div class="attention-icon blue">✍️</div><div><b>Digital Signature Embed</b><span>Cryptographically signed timestamp 2026</span></div><div class="check" style="background:#16a34a;color:#fff;border:none">✓</div></div>' +
+            '<div class="attention-row"><div class="attention-icon blue">📇</div><div><b>Photo Recalibration</b><span>High-resolution UIDAI biometric photograph mapped</span></div><div class="check" style="background:#16a34a;color:#fff;border:none">✓</div></div>' +
+            '</div>' +
+            '</div>' +
+            '<p style="font-size:12px;color:#64748b;margin:0">Faceless processing: No physical visit to RTO or paper file submission required.</p>';
+
+            foot = '<button class="btn secondary" onclick="prevRenew()">Back</button><button class="btn primary" onclick="nextRenew()">Proceed to Fee Payment →</button>';
+        } else if (step === 3) {
+            body = '<div class="notice info"><b>Renewal Fee Schedule (MVA Section 15)</b><br>Statutory fee breakdown for 10-year driving license renewal and physical smart card delivery.</div>' +
+            '<div class="metrics" style="margin:18px 0">' +
+            '<div class="metric"><span>Driving License Renewal Fee (Form 9)</span><b>₹200</b></div>' +
+            '<div class="metric"><span>Smart Card Polycarbonate Printing & Embossing</span><b>₹200</b></div>' +
+            '<div class="metric"><span>Late Penalty (Grace period active)</span><b style="color:var(--green)">₹0 (Waived)</b></div>' +
+            '<div class="metric"><span>India Post Speed Post Delivery</span><b style="color:var(--green)">Included (₹0)</b></div>' +
+            '<div class="metric"><span style="font-weight:700;color:var(--navy)">Total Government Due</span><b style="font-size:18px;color:var(--navy)">₹400</b></div>' +
+            '</div>' +
+            '<div style="padding:12px;background:#f8fafc;border:1px solid #dce5ef;border-radius:8px;font-size:12px;color:#64748b">' +
+            '🔒 <b>Secured by Bharat BillPay:</b> Immediate digital issuance. Transaction receipt will be stored in your Payments history.' +
+            '</div>';
+
+            foot = '<button class="btn secondary" onclick="prevRenew()">Back</button><button class="btn primary" onclick="payRenew()">Pay ₹400 & Renew DL →</button>';
+        } else if (step === 4) {
+            body = '<div class="success-box" style="background:#f0fdf4;color:#166534">' +
+            '<i style="background:#dcfce7;color:#15803d;font-size:26px;display:grid;place-items:center;width:50px;height:50px;margin:0 auto 12px;border-radius:50%;font-style:normal">🎉</i>' +
+            '<h3 style="font-size:19px">Driving License Renewed for 10 Years!</h3>' +
+            '<p style="font-size:13px;margin-top:4px">Application Reference: <b>RR-RN-48291</b> · Payment of ₹400 completed.</p>' +
+            '</div>' +
+            '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:16px 0">' +
+            '<div class="metrics">' +
+            '<div class="metric"><span>License Number</span><b>' + curDL + '</b></div>' +
+            '<div class="metric"><span>Extended Validity</span><b style="color:#166534">Valid till 29 Aug 2036 (10 Years)</b></div>' +
+            '<div class="metric"><span>Speed Post Consignment</span><b style="color:var(--blue)">EM582910482IN</b></div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="attention">' +
+            '<div class="attention-row"><div class="attention-icon green">🪪</div><div><b>Updated Digital Driving License</b><span>Instantly valid across India under IT Act Section 4</span></div><button class="link" onclick="downloadDocument(\'Renewed_Driving_License_KA01.pdf\')">Download PDF</button></div>' +
+            '</div>';
+
+            foot = '<button class="btn primary" onclick="closeModal()">Return to Dashboard</button>';
+        }
+
+        return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Renew Driving License</h2><p>' + curDL + ' · Form 9</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">' + head + body + '</div><footer class="modal-foot">' + foot + '</footer></section></div>';
+    }
+
     function changeDetailsModal(){
         var curName = state.dlName || (state.role === 'buyer' ? 'Rohan Shah' : 'Ananya Rao');
         var curMobile = state.dlMobile || (state.role === 'buyer' ? '+91 98765 43210' : '+91 91234 56789');
@@ -1502,7 +1727,54 @@ window.startExistingLogin = function() {
     render();
 };
 
-window.beginLogin=function(role){if(role==='applicant') window.startLLFlow(); else window.startExistingLogin();};window.goHome=function(){state.screen='landing';render()};window.method=function(m){state.method=m;render()};window.authRole=function(r){state.authRole=r;render()};window.sendOtp=function(){state.authStep='otp';render()};window.verifyOtp=function(){var o=document.getElementById('otp');if(!o||o.value!=='123456'){notify('Try the demo OTP','Enter 123456 to continue.');return}state.role=state.authRole;state.screen='dashboard';state.active='overview';state.detail=false;if(state.role==='buyer'&&state.transfer.inviteSent&&!state.transfer.buyerAccepted){state.modal='buyer-invite'}save();render()};window.logout=function(){state.screen='landing';state.active='overview';render()};window.section=function(x){state.active=x;state.detail=false;render()};window.selectCar=function(id){state.selected=id;state.active='overview';state.detail=false;render()};window.showCar=function(id){state.selected=id;state.active='vehicles';state.detail=true;render()};window.backCars=function(){state.detail=false;render()};window.alertToast=function(a,b){notify(a,b)};window.openChallan=function(){state.challanStep=0;state.modal='challan';render()};window.contestChallan=function(){state.challanStep=1;render()};window.submitContest=function(){state.challanStatus='disputed';localStorage.setItem('rr-challan-status', 'disputed');state.modal='success';state.successTitle='Dispute Submitted';state.successBody='Your dispute has been forwarded to the Virtual Traffic Court. The payment deadline is frozen pending review.';save();render()};window.stopWebcam=function(){if(window.currentWebcamStream){window.currentWebcamStream.getTracks().forEach(function(t){t.stop()});window.currentWebcamStream=null}var v=document.getElementById('webcam-feed');if(v)v.srcObject=null};window.closeModal=function(){window.stopWebcam();state.modal=null;state.kycStep=0;render()};window.payChallan=function(){state.challanPaid=true;state.challanStatus='paid';localStorage.setItem('rr-challan', 'true');localStorage.setItem('rr-challan-status', 'paid');state.modal='success';state.successTitle='Challan payment complete';state.successBody='₹500 was paid in this mock flow. Receipt RR-CH-2048 is now in your payment history.';save();render()};window.openTransfer=function(){state.transferStep=0;state.modal='transfer';render()};window.nextTransfer=function(){if(state.transferStep===1){var n=document.getElementById('buyer-name'),m=document.getElementById('buyer-mobile');state.transfer.buyerName=n&&n.value.trim()?n.value.trim():'Rohan Shah';state.transfer.buyerMobile=m&&m.value.trim()?m.value.trim():'98 7654 3210'}state.transferStep=Math.min(2,state.transferStep+1);render()};window.prevTransfer=function(){state.transferStep=Math.max(0,state.transferStep-1);render()};window.sendInvite=function(){state.transfer.inviteSent=true;state.transfer.status='Waiting for buyer';state.modal='success';state.successTitle='Buyer invited securely';state.successBody=(state.transfer.buyerName||'Rohan Shah')+' can now review and accept transfer from their own dashboard.';save();render()};window.switchRole=function(r){state.role=r;state.active='transfers';state.detail=false;if(r==='buyer'&&state.transfer.inviteSent&&!state.transfer.buyerAccepted){state.modal='buyer-invite'}save();render()};window.buyerAccept=function(){state.transfer.buyerAccepted=true;state.transfer.status='Remote verification pending';state.modal='success';state.successTitle='Transfer accepted';state.successBody='You can now complete remote identity and consent verification.';save();render()};window.openBuyerInvite=function(){state.modal='buyer-invite';render()};window.rejectTransfer=function(){state.transfer=Object.assign({},defaults);state.transfer.status='Rejected by buyer';state.modal='success';state.successTitle='Transfer rejected';state.successBody='You have rejected the ownership transfer request.';save();render()};window.openKyc=function(r){state.modal=r==='seller'?'kyc-seller':'kyc-buyer';state.kycStep=0;render()};window.nextKyc=function(r){if(state.kycStep<3){state.kycStep+=1;render();return}window.stopWebcam();if(r==='seller')state.transfer.sellerKyc=true;else state.transfer.buyerKyc=true;if(state.transfer.sellerKyc&&state.transfer.buyerKyc){state.transfer.submitted=true;state.transfer.status='Under RTO review';state.successTitle='Remote verification complete';state.successBody='Both parties are verified. Transfer is submitted for mock '+car().state+' RTO review.'}else{state.transfer.status=state.transfer.buyerAccepted?'Remote verification pending':'Waiting for buyer';state.successTitle='Seller verification complete';state.successBody='Buyer will complete their own verification from their dashboard.'}state.modal='success';save();render()};window.resetTransfer=function(){state.transfer=Object.assign({},defaults);state.role='seller';save();notify('Demo reset','Ownership-transfer flow is ready to run again.')};window.openVehicleVerify=function(){state.modal='vehicle-verify';state.vehicleVerifyStep=0;render()};window.runVehicleAI=function(){var p1=document.getElementById('v-photo-1'),p2=document.getElementById('v-photo-2');if(!p1||!p2||p1.style.display==='none'||p2.style.display==='none'){alertToast('Missing photos','Please attach both photos first.');return}state.vehicleVerifyStep=1;render();setTimeout(function(){var st=document.getElementById('ai-status');if(st)st.innerText='Analyzing image EXIF data...'},1200);setTimeout(function(){var st=document.getElementById('ai-status');if(st)st.innerText='Cross-referencing chassis VIN database...'},2400);setTimeout(function(){state.transfer.vehicleVerified=true;state.modal='success';state.successTitle='Vehicle Verified';state.successBody='AI Scan complete. No deepfakes or manipulation detected. Chassis matches VAHAN database securely.';save();render()},3800)};window.openHsrp=function(){state.modal='hsrp';state.hsrpStep=0;render()};window.nextHsrp=function(){state.hsrpStep=1;render()};window.prevHsrp=function(){state.hsrpStep=0;render()};window.payHsrp=function(){hsrpBooked=true;state.modal='success';state.successTitle='HSRP Booked';state.successBody='Your HSRP has been booked successfully. The agent will visit on the selected date for fitment.';save();render()};window.openNoc=function(){state.modal='noc';state.nocStep=0;render()};window.requestNoc=function(){state.nocStep=1;render();setTimeout(function(){var st=document.getElementById('noc-status');if(st)st.innerText='Loan closure verified! Generating cryptographic NOC...'},1500);setTimeout(function(){nocCleared=true;state.modal='success';state.successTitle='Digital NOC Received';state.successBody='HDFC Bank has confirmed the loan is closed. The hypothecation block has been removed digitally. You can now transfer ownership.';save();render()},3200)};window.openDuplicateRc=function(){state.dupRcStep=0;state.modal='duplicate-rc';render()};window.nextDupRc=function(){state.dupRcStep=1;render()};window.prevDupRc=function(){state.dupRcStep=0;render()};window.payDupRc=function(){recordPayment("Duplicate RC", 500);state.modal='success';state.successTitle='Duplicate RC Request Submitted';state.successBody='₹500 paid. A digital duplicate RC is now available in your documents. The physical card will arrive in 7 days.';render()};window.openIdp=function(){state.modal='idp';state.idpStep=0;render()};window.nextIdp=function(){state.idpStep=1;render()};window.prevIdp=function(){state.idpStep=0;render()};window.payIdp=function(){recordPayment("International Driving Permit", 1000);state.modal='success';state.successTitle='IDP Requested';state.successBody='Payment of ₹1000 successful. Your International Driving Permit has been approved and will be shipped to your registered address.';render()};window.openRenewDl=function(){state.modal='renew-dl';state.renewStep=0;render()};window.fetchMedical=function(){state.renewStep=1;render();setTimeout(function(){var st=document.getElementById('abdm-status');if(st)st.innerText='Verifying doctor\'s digital signature...'},1200);setTimeout(function(){state.renewStep=2;render()},2800)};window.payRenew=function(){recordPayment("Driving License Renewal", 200);state.modal='success';state.successTitle='DL Renewed Successfully';state.successBody='Your DL has been renewed for 10 years. A new smart card will be dispatched shortly.';render()};window.openChangeDetails=function(){state.modal='change-details';render()};
+window.beginLogin=function(role){if(role==='applicant') window.startLLFlow(); else window.startExistingLogin();};window.goHome=function(){state.screen='landing';render()};window.method=function(m){state.method=m;render()};window.authRole=function(r){state.authRole=r;render()};window.sendOtp=function(){state.authStep='otp';render()};window.verifyOtp=function(){var o=document.getElementById('otp');if(!o||o.value!=='123456'){notify('Try the demo OTP','Enter 123456 to continue.');return}state.role=state.authRole;state.screen='dashboard';state.active='overview';state.detail=false;if(state.role==='buyer'&&state.transfer.inviteSent&&!state.transfer.buyerAccepted){state.modal='buyer-invite'}save();render()};window.logout=function(){state.screen='landing';state.active='overview';render()};window.section=function(x){state.active=x;state.detail=false;render()};window.selectCar=function(id){state.selected=id;state.active='overview';state.detail=false;render()};window.showCar=function(id){state.selected=id;state.active='vehicles';state.detail=true;render()};window.backCars=function(){state.detail=false;render()};window.alertToast=function(a,b){notify(a,b)};window.openChallan=function(){state.challanStep=0;state.modal='challan';render()};window.contestChallan=function(){state.challanStep=1;render()};window.submitContest=function(){state.challanStatus='disputed';localStorage.setItem('rr-challan-status', 'disputed');state.modal='success';state.successTitle='Dispute Submitted';state.successBody='Your dispute has been forwarded to the Virtual Traffic Court. The payment deadline is frozen pending review.';save();render()};window.stopWebcam=function(){if(window.currentWebcamStream){window.currentWebcamStream.getTracks().forEach(function(t){t.stop()});window.currentWebcamStream=null}var v=document.getElementById('webcam-feed');if(v)v.srcObject=null};window.closeModal=function(){window.stopWebcam();state.modal=null;state.kycStep=0;render()};window.payChallan=function(){state.challanPaid=true;state.challanStatus='paid';localStorage.setItem('rr-challan', 'true');localStorage.setItem('rr-challan-status', 'paid');state.modal='success';state.successTitle='Challan payment complete';state.successBody='₹500 was paid in this mock flow. Receipt RR-CH-2048 is now in your payment history.';save();render()};window.openTransfer=function(){state.transferStep=0;state.modal='transfer';render()};window.nextTransfer=function(){if(state.transferStep===1){var n=document.getElementById('buyer-name'),m=document.getElementById('buyer-mobile');state.transfer.buyerName=n&&n.value.trim()?n.value.trim():'Rohan Shah';state.transfer.buyerMobile=m&&m.value.trim()?m.value.trim():'98 7654 3210'}state.transferStep=Math.min(2,state.transferStep+1);render()};window.prevTransfer=function(){state.transferStep=Math.max(0,state.transferStep-1);render()};window.sendInvite=function(){state.transfer.inviteSent=true;state.transfer.status='Waiting for buyer';state.modal='success';state.successTitle='Buyer invited securely';state.successBody=(state.transfer.buyerName||'Rohan Shah')+' can now review and accept transfer from their own dashboard.';save();render()};window.switchRole=function(r){state.role=r;state.active='transfers';state.detail=false;if(r==='buyer'&&state.transfer.inviteSent&&!state.transfer.buyerAccepted){state.modal='buyer-invite'}save();render()};window.buyerAccept=function(){state.transfer.buyerAccepted=true;state.transfer.status='Remote verification pending';state.modal='success';state.successTitle='Transfer accepted';state.successBody='You can now complete remote identity and consent verification.';save();render()};window.openBuyerInvite=function(){state.modal='buyer-invite';render()};window.rejectTransfer=function(){state.transfer=Object.assign({},defaults);state.transfer.status='Rejected by buyer';state.modal='success';state.successTitle='Transfer rejected';state.successBody='You have rejected the ownership transfer request.';save();render()};window.openKyc=function(r){state.modal=r==='seller'?'kyc-seller':'kyc-buyer';state.kycStep=0;render()};window.nextKyc=function(r){if(state.kycStep<3){state.kycStep+=1;render();return}window.stopWebcam();if(r==='seller')state.transfer.sellerKyc=true;else state.transfer.buyerKyc=true;if(state.transfer.sellerKyc&&state.transfer.buyerKyc){state.transfer.submitted=true;state.transfer.status='Under RTO review';state.successTitle='Remote verification complete';state.successBody='Both parties are verified. Transfer is submitted for mock '+car().state+' RTO review.'}else{state.transfer.status=state.transfer.buyerAccepted?'Remote verification pending':'Waiting for buyer';state.successTitle='Seller verification complete';state.successBody='Buyer will complete their own verification from their dashboard.'}state.modal='success';save();render()};window.resetTransfer=function(){state.transfer=Object.assign({},defaults);state.role='seller';save();notify('Demo reset','Ownership-transfer flow is ready to run again.')};window.openVehicleVerify=function(){state.modal='vehicle-verify';state.vehicleVerifyStep=0;render()};window.runVehicleAI=function(){var p1=document.getElementById('v-photo-1'),p2=document.getElementById('v-photo-2');if(!p1||!p2||p1.style.display==='none'||p2.style.display==='none'){alertToast('Missing photos','Please attach both photos first.');return}state.vehicleVerifyStep=1;render();setTimeout(function(){var st=document.getElementById('ai-status');if(st)st.innerText='Analyzing image EXIF data...'},1200);setTimeout(function(){var st=document.getElementById('ai-status');if(st)st.innerText='Cross-referencing chassis VIN database...'},2400);setTimeout(function(){state.transfer.vehicleVerified=true;state.modal='success';state.successTitle='Vehicle Verified';state.successBody='AI Scan complete. No deepfakes or manipulation detected. Chassis matches VAHAN database securely.';save();render()},3800)};window.openHsrp=function(){state.modal='hsrp';state.hsrpStep=0;render()};window.nextHsrp=function(){state.hsrpStep=1;render()};window.prevHsrp=function(){state.hsrpStep=0;render()};window.payHsrp=function(){hsrpBooked=true;state.modal='success';state.successTitle='HSRP Booked';state.successBody='Your HSRP has been booked successfully. The agent will visit on the selected date for fitment.';save();render()};window.openNoc=function(){state.modal='noc';state.nocStep=0;render()};window.requestNoc=function(){state.nocStep=1;render();setTimeout(function(){var st=document.getElementById('noc-status');if(st)st.innerText='Loan closure verified! Generating cryptographic NOC...'},1500);setTimeout(function(){nocCleared=true;state.modal='success';state.successTitle='Digital NOC Received';state.successBody='HDFC Bank has confirmed the loan is closed. The hypothecation block has been removed digitally. You can now transfer ownership.';save();render()},3200)};window.openDuplicateRc=function(){state.dupRcStep=0;state.modal='duplicate-rc';render()};window.nextDupRc=function(){state.dupRcStep=1;render()};window.prevDupRc=function(){state.dupRcStep=0;render()};window.payDupRc=function(){recordPayment("Duplicate RC", 500);state.modal='success';state.successTitle='Duplicate RC Request Submitted';state.successBody='₹500 paid. A digital duplicate RC is now available in your documents. The physical card will arrive in 7 days.';render()};
+window.openIdp = function() {
+    state.modal = 'idp';
+    state.idpStep = 0;
+    render();
+};
+
+window.nextIdp = function() {
+    state.idpStep = (state.idpStep || 0) + 1;
+    render();
+};
+
+window.prevIdp = function() {
+    state.idpStep = Math.max(0, (state.idpStep || 0) - 1);
+    render();
+};
+
+window.payIdp = function() {
+    recordPayment("International Driving Permit (Form 4A)", 1000);
+    state.idpStep = 4;
+    save();
+    render();
+};
+
+window.openRenewDl = function() {
+    state.modal = 'renew-dl';
+    state.renewStep = 0;
+    render();
+};
+
+window.nextRenew = function() {
+    state.renewStep = (state.renewStep || 0) + 1;
+    render();
+};
+
+window.prevRenew = function() {
+    state.renewStep = Math.max(0, (state.renewStep || 0) - 1);
+    render();
+};
+
+window.payRenew = function() {
+    recordPayment("Driving License Renewal (Form 9)", 400);
+    state.renewStep = 4;
+    save();
+    render();
+};
+
+window.openChangeDetails=function(){state.modal='change-details';render()};
 
 window.startChangeDetails = function() {
     var q = [];
