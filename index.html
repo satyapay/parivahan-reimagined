@@ -358,7 +358,7 @@
     '<h1>Reimagining Citizen <br><span class="accent">Mobility & Licensing.</span></h1>' +
     '<p class="hero-copy">From faceless Learner\'s Licenses and Automated Track Driving Tests to remote vehicle ownership transfers and Virtual Traffic Court settlements—all in one unified citizen portal.</p>' +
     '<div style="display:flex;flex-direction:column;gap:12px;margin-top:24px;max-width:440px">' +
-    '<button class="btn primary" style="height:48px;font-size:15px;justify-content:space-between;padding:0 20px" onclick="startLLFlow()"><span>🔰 Apply for Learner\'s License (Zero to Driver)</span><span>→</span></button>' +
+    '<button class="btn primary" style="height:48px;font-size:15px;justify-content:space-between;padding:0 20px" onclick="startLLFlow()"><span>🔰 Apply for Learner\'s License</span><span>→</span></button>' +
     '<button class="btn secondary" style="height:48px;font-size:15px;justify-content:space-between;padding:0 20px;background:#fff;border-color:#cbd5e1" onclick="startExistingLogin()"><span>🔑 Log in as Existing User (Driver / Owner)</span><span>→</span></button>' +
     '</div>' +
     '<div class="trust"><span><b>✓</b> Aadhaar & DigiLocker Integrated</span><span><b>✓</b> Faceless & Paperless</span><span><b>✓</b> Pan-India Portability</span></div>' +
@@ -389,7 +389,7 @@
     // Service 1: LL
     '<div class="card pad" style="border-top:4px solid #10b981;background:#fff">' +
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><span style="font-size:28px">🔰</span><span class="tag green">100% Faceless</span></div>' +
-    '<h3 style="margin:0 0 6px;font-size:17px;color:var(--navy)">Learner\'s License (Zero to Driver)</h3>' +
+    '<h3 style="margin:0 0 6px;font-size:17px;color:var(--navy)">Learner\'s License (LL)</h3>' +
     '<p style="margin:0 0 16px;color:#64748b;font-size:13px;line-height:1.5">Apply from home with Aadhaar biometric e-KYC, DigiLocker age & address proofs, online digital signature, and an AI-proctored road safety quiz with real webcam monitoring.</p>' +
     '<button class="link" style="font-weight:800;color:#059669" onclick="startLLFlow()">Apply for Learner\'s License →</button>' +
     '</div>' +
@@ -604,11 +604,11 @@ function auth(){
         var s4 = step >= 5 ? 'done' : (state.llSigned ? 'pending' : '');
         var s5 = step >= 7 ? 'done' : (step >= 5 ? 'pending' : '');
 
-        return '<div class="section"><div class="intro"><div><h1>Welcome, Applicant</h1><p>Track your Zero to Driver journey step-by-step.</p></div></div>' +
+        return '<div class="section"><div class="intro"><div><h1>Welcome, Applicant</h1><p>Track your Learner\'s License application journey step-by-step.</p></div></div>' +
         '<div class="grid"><div class="stack">' +
         '<div class="card pad" style="border-top:4px solid #58cfab"><div class="card-title"><div><span class="tag amber" style="margin-bottom:8px;display:inline-block">Action Required</span><h2 style="font-size:18px">Learner\'s License Application</h2><p>Complete the faceless application from home.</p></div></div>' +
         '<div class="empty" style="padding:24px 15px;margin:18px 0;background:#f8fafc"><i style="font-size:32px;margin-bottom:8px;font-style:normal">🔰</i><b style="font-size:15px;color:var(--navy)">Application In Progress</b><p style="font-size:12px;color:#64748b;margin-top:4px">Authenticate via Aadhaar, verify docs via DigiLocker, and complete the proctored test.</p></div>' +
-        '<button class="btn primary" style="width:100%;height:44px" onclick="openLLApply()">Start / Resume LL Application (Zero to Driver) →</button>' +
+        '<button class="btn primary" style="width:100%;height:44px" onclick="openLLApply()">Start / Resume LL Application →</button>' +
         '</div></div>' +
         '<div class="stack">' +
         '<div class="card pad">' +
@@ -991,7 +991,7 @@ function llModal() {
         foot = '<button class="btn primary" onclick="closeModal()">Return to Applicant Dashboard</button>';
     }
 
-    return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Apply for Learner\'s License</h2><p>Zero to Driver Faceless Workflow</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">'+head+body+'</div><footer class="modal-foot">'+foot+'</footer></section></div>';
+    return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Apply for Learner\'s License</h2><p>Faceless Online Application</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">'+head+body+'</div><footer class="modal-foot">'+foot+'</footer></section></div>';
 }
 
 function modal(){if(!state.modal)return '';if(state.modal==='ll-apply') return llModal();if(state.modal==='dl-apply') return dlApplyModal();
