@@ -25,7 +25,7 @@
   (function(){
     var app=document.getElementById('app');
     var defaults={status:'Not started',buyerName:'',buyerMobile:'',inviteSent:false,sellerKyc:false,buyerAccepted:false,buyerKyc:false,submitted:false,vehicleVerified:false};
-    var state={screen:'dashboard',authStep:'identity',method:'dl',authRole:'seller',role:localStorage.getItem('rr-role')||'seller',active:'overview',selected:'ka01',detail:false,modal:null,transferStep:0,kycStep:0,toast:'',challanPaid:localStorage.getItem('rr-challan')==='true',challanStatus:localStorage.getItem('rr-challan-status')||'unpaid',transfer:load(),chatOpen:false,chatHistory:[{role:'bot',text:'Namaste! I am Parivahan Sahayak, your AI guide to Indian motor vehicle rules. How can I help you today?'}]};
+    var state={screen:'landing',authStep:'identity',method:'dl',authRole:'seller',role:localStorage.getItem('rr-role')||'seller',active:'overview',selected:'ka01',detail:false,modal:null,transferStep:0,kycStep:0,toast:'',challanPaid:localStorage.getItem('rr-challan')==='true',challanStatus:localStorage.getItem('rr-challan-status')||'unpaid',transfer:load(),chatOpen:false,chatHistory:[{role:'bot',text:'Namaste! I am Parivahan Sahayak, your AI guide to Indian motor vehicle rules. How can I help you today?'}]};
     var nocCleared = false;
     var hsrpBooked = false;
     var stateRules={'Karnataka':{fee:'₹300',policy:'Remote video verification plus RTO review.',type:'Hybrid'},'Tamil Nadu':{fee:'₹450',policy:'Physical RTO visit required for Buyer after initial digital submission.',type:'Strict'},'Maharashtra':{fee:'₹500',policy:'Fully faceless e-KYC route via Aadhaar. No RTO visit needed.',type:'Faceless'}};
