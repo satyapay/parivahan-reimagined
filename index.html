@@ -797,20 +797,25 @@ window.llSetState = function(val) {
     state.llState = val; 
     render(); 
 };
+
 window.llFetchDoc = function(type) { 
-    state.llDocs++; 
+    if(type === 1) state.llAgeFetched = true;
+    if(type === 2) state.llAddrFetched = true;
+    state.llDocs = (state.llAgeFetched ? 1 : 0) + (state.llAddrFetched ? 1 : 0);
     render(); 
     if(state.llDocs === 2) {
-        setTimeout(function(){
-            alertToast('Documents Verified', 'Proof of Age & Proof of Address fetched via DigiLocker.');
-            window.llNext();
-        }, 1000);
+        alertToast('Documents Verified', 'Age & Address proofs verified via DigiLocker.');
     }
 };
-window.llSign = function() { 
-    state.llSigned = true; 
-    render(); 
+
+window.llFetchAllDocs = function() {
+    state.llAgeFetched = true;
+    state.llAddrFetched = true;
+    state.llDocs = 2;
+    render();
+    alertToast('DigiLocker Sync Complete', 'Both Proof of Age and Proof of Address fetched and verified!');
 };
+
 window.llClearSign = function() {
     state.llSigned = false;
     render();
@@ -841,13 +846,31 @@ function llModal() {
         body = '<div class="field"><label>Aadhaar 6-Digit OTP</label><input class="input" type="text" placeholder="6-digit code" value="123456" style="font-size:20px;text-align:center;letter-spacing:6px;font-weight:700;color:var(--navy)"></div><p style="font-size:12px;color:var(--muted)">OTP sent to mobile linked with Aadhaar ending in 1098.</p>';
         foot = '<button class="btn secondary" onclick="state.llStep=0;render()">Back</button><button class="btn primary" onclick="llNext()">Verify Identity & Continue →</button>';
     } else if (step === 2) {
-        var d1 = state.llDocs >= 1;
-        var d2 = state.llDocs >= 2;
+        var d1 = state.llAgeFetched || (state.llDocs >= 1);
+        var d2 = state.llAddrFetched || (state.llDocs >= 2);
+        var allDone = d1 && d2;
         
-        body = '<div class="notice success" style="margin-bottom:15px"><b>Identity Verified: Rohan Shah</b><br>DOB (Aadhaar): 14/08/2003 · Aadhaar No: XXXX-XXXX-1098</div><p style="font-size:13px;color:var(--muted)">Under CMVR Rule 10, select and provide valid statutory documents. Multiple options are supported:</p>' +
-        '<div style="display:grid;gap:14px;margin-top:15px">' +
-        '<div style="padding:14px;border:1px solid #dce5ef;border-radius:10px;background:#f8fafc">' +
-        '<label style="font-size:12px;font-weight:700;color:var(--navy)">Proof of Date of Birth (Age)</label>' +
+        var digiBanner = '<div style="background:linear-gradient(135deg, #0b1f3a, #000080);color:#fff;padding:14px 16px;border-radius:12px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 4px 14px rgba(0,0,128,0.15)">' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+        '<div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.2);display:grid;place-items:center;font-size:20px;flex-shrink:0">☁️</div>' +
+        '<div>' +
+        '<b style="font-size:13px;display:block">DigiLocker Paperless Verification</b>' +
+        '<span style="font-size:11px;opacity:0.85;display:block;margin-top:2px">CMVR Rule 10 requires verified digital proofs. Click below to pull both documents.</span>' +
+        '</div>' +
+        '</div>' +
+        '<button class="btn primary small" style="background:#ff9933;color:#0b1f3a;font-weight:800;white-space:nowrap;box-shadow:0 3px 8px rgba(0,0,0,0.2);flex-shrink:0" onclick="llFetchAllDocs()">⚡ 1-Click Fetch All</button>' +
+        '</div>';
+
+        body = '<div class="notice success" style="margin-bottom:14px"><b>Identity Verified: Rohan Shah</b><br>DOB (Aadhaar): 14/08/2003 · Aadhaar No: XXXX-XXXX-1098</div>' +
+        digiBanner +
+        '<div style="display:grid;gap:14px">' +
+        
+        // Doc 1: Proof of Age
+        '<div style="padding:14px;border:1.5px solid ' + (d1 ? '#86efac' : '#93c5fd') + ';border-radius:10px;background:' + (d1 ? '#f0fdf4' : '#f0f7ff') + '">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+        '<label style="font-size:12px;font-weight:800;color:var(--navy)">1. Proof of Date of Birth (Age)</label>' +
+        (d1 ? '<span class="tag green" style="font-size:11px;font-weight:800">✓ DigiLocker Verified</span>' : '<span class="tag amber" style="font-size:10px">Action Required</span>') +
+        '</div>' +
         '<div style="display:flex;gap:10px;margin-top:6px">' +
         '<select class="input" style="flex:1" onchange="state.llAgeDocType=this.value">' +
         '<option value="10th Marksheet">10th Class Marksheet / School Leaving Certificate</option>' +
@@ -856,10 +879,17 @@ function llModal() {
         '<option value="PAN Card">PAN Card</option>' +
         '<option value="Electoral ID">Electoral Photo ID (Voter Card)</option>' +
         '</select>' +
-        (d1 ? '<span class="tag green" style="align-self:center;padding:6px 12px;font-size:12px">✓ Verified</span>' : '<button class="btn secondary small" style="white-space:nowrap" onclick="llFetchDoc(1)">Fetch via DigiLocker</button>') +
-        '</div></div>' +
-        '<div style="padding:14px;border:1px solid #dce5ef;border-radius:10px;background:#f8fafc">' +
-        '<label style="font-size:12px;font-weight:700;color:var(--navy)">Proof of Current Residence (Address)</label>' +
+        (d1 ? '<span class="tag green" style="align-self:center;padding:6px 12px;font-size:12px">✓ Attached</span>' : '<button class="btn primary small" style="background:var(--blue);color:#fff;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,128,0.25)" onclick="llFetchDoc(1)">☁️ Fetch via DigiLocker →</button>') +
+        '</div>' +
+        (d1 ? '<div style="margin-top:6px;font-size:11px;color:#166534;font-weight:600">✓ Verified record: CB-2019-1098421 issued by Central Board of Secondary Education</div>' : '<div style="margin-top:4px;font-size:11px;color:#3b82f6">💡 Click "Fetch via DigiLocker" to retrieve digital certificate</div>') +
+        '</div>' +
+        
+        // Doc 2: Proof of Address
+        '<div style="padding:14px;border:1.5px solid ' + (d2 ? '#86efac' : '#93c5fd') + ';border-radius:10px;background:' + (d2 ? '#f0fdf4' : '#f0f7ff') + '">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+        '<label style="font-size:12px;font-weight:800;color:var(--navy)">2. Proof of Current Residence (Address)</label>' +
+        (d2 ? '<span class="tag green" style="font-size:11px;font-weight:800">✓ DigiLocker Verified</span>' : '<span class="tag amber" style="font-size:10px">Action Required</span>') +
+        '</div>' +
         '<div style="display:flex;gap:10px;margin-top:6px">' +
         '<select class="input" style="flex:1" onchange="state.llAddrDocType=this.value">' +
         '<option value="Electricity Bill">Electricity / BESCOM / MSEDCL Utility Bill</option>' +
@@ -868,10 +898,22 @@ function llModal() {
         '<option value="Bank Passbook">Nationalised Bank Passbook / Statement</option>' +
         '<option value="Employer Certificate">Employer / University Bonafide Certificate</option>' +
         '</select>' +
-        (d2 ? '<span class="tag green" style="align-self:center;padding:6px 12px;font-size:12px">✓ Verified</span>' : '<button class="btn secondary small" style="white-space:nowrap" onclick="llFetchDoc(2)">Fetch via DigiLocker</button>') +
-        '</div></div>' +
+        (d2 ? '<span class="tag green" style="align-self:center;padding:6px 12px;font-size:12px">✓ Attached</span>' : '<button class="btn primary small" style="background:var(--blue);color:#fff;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,128,0.25)" onclick="llFetchDoc(2)">☁️ Fetch via DigiLocker →</button>') +
+        '</div>' +
+        (d2 ? '<div style="margin-top:6px;font-size:11px;color:#166534;font-weight:600">✓ Verified record: MSEDCL Consumer #4829104821 (Address: Senapati Bapat Road, Pune)</div>' : '<div style="margin-top:4px;font-size:11px;color:#3b82f6">💡 Click "Fetch via DigiLocker" to link active utility bill</div>') +
+        '</div>' +
+        
         '</div>';
-        foot = '<button class="btn secondary" onclick="state.llStep=1;render()">Back</button><button class="btn primary" '+(d1&&d2?'':'disabled')+' onclick="llNext()">Continue to Signature →</button>';
+        
+        var hintFooter = allDone ? '' : '<div style="width:100%;text-align:center;font-size:12px;color:#b45309;font-weight:600;margin-top:6px">👆 Click "Fetch via DigiLocker" on both documents above to continue</div>';
+        
+        foot = '<div style="display:flex;flex-direction:column;width:100%;gap:6px">' +
+        '<div style="display:flex;justify-content:flex-end;gap:10px;width:100%">' +
+        '<button class="btn secondary" onclick="state.llStep=1;render()">Back</button>' +
+        '<button class="btn primary" ' + (allDone ? '' : 'disabled') + ' onclick="llNext()">Continue to Signature →</button>' +
+        '</div>' +
+        hintFooter +
+        '</div>';
     } else if (step === 3) {
         var sigSvg = '<svg viewBox="0 0 300 90" style="width:240px;height:75px"><path d="M 20 60 Q 40 10 55 45 T 75 40 T 95 30 Q 115 15 130 50 T 150 40 Q 170 20 185 45 T 215 35 T 240 50 T 275 35" fill="none" stroke="#000080" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M 30 75 L 260 70" fill="none" stroke="#000080" stroke-width="2" stroke-linecap="round"/></svg>';
         
