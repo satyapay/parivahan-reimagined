@@ -1275,24 +1275,24 @@ if(state.modal==='challan')return challanModal();if(state.modal==='transfer')ret
        ========================================================================= */
     function idpModal() {
         var step = state.idpStep || 0;
-        var totalFee = 1000;
         var countries = [
             'United States of America (USA)', 'United Kingdom (UK)', 'United Arab Emirates (UAE)',
             'Germany', 'Australia', 'Canada', 'Singapore', 'France', 'Japan', 'Switzerland', 'Other 1949 Convention Nation'
         ];
         
         var head = '<div class="stepper">' +
-            '<div class="step ' + (step === 0 ? 'active' : step > 0 ? 'done' : '') + '">1 · Travel Details</div>' +
-            '<div class="step ' + (step === 1 ? 'active' : step > 1 ? 'done' : '') + '">2 · Medical & DL</div>' +
-            '<div class="step ' + (step === 2 ? 'active' : step > 2 ? 'done' : '') + '">3 · Documents</div>' +
-            '<div class="step ' + (step === 3 ? 'active' : step > 3 ? 'done' : '') + '">4 · Fee (₹1000)</div>' +
-            '<div class="step ' + (step === 4 ? 'active' : '') + '">5 · Issued</div>' +
+            '<div class="step ' + (step === 0 ? 'active' : step > 0 ? 'done' : '') + '">1 · Travel</div>' +
+            '<div class="step ' + (step === 1 ? 'active' : step > 1 ? 'done' : '') + '">2 · e-Sanjeevani</div>' +
+            '<div class="step ' + (step === 2 ? 'active' : step > 2 ? 'done' : '') + '">3 · Blood Test</div>' +
+            '<div class="step ' + (step === 3 ? 'active' : step > 3 ? 'done' : '') + '">4 · Classes</div>' +
+            '<div class="step ' + (step === 4 ? 'active' : step > 4 ? 'done' : '') + '">5 · Fee (₹1000)</div>' +
+            '<div class="step ' + (step === 5 ? 'active' : '') + '">6 · Issued</div>' +
             '</div>';
             
         var body = '', foot = '';
 
         if (step === 0) {
-            body = '<div class="notice info"><b>Form 4A: Application for International Driving Permit</b><br>As per CMVR 1989 & 1949 Geneva Convention, an IDP allows you to drive non-commercial vehicles abroad in 150+ signatory countries.</div>' +
+            body = '<div class="notice info"><b>Form 4A: International Driving Permit Application</b><br>Under the 1949 Geneva Convention, an IDP requires verified travel details, statutory doctor tele-consultation, and mandatory blood group serological proof.</div>' +
             '<div class="form-grid" style="margin-top:16px">' +
             '<div class="field"><label>Destination Country</label>' +
             '<select class="input" id="idp-country">' + countries.map(function(c){ return '<option ' + (c.startsWith('United States') ? 'selected' : '') + '>' + c + '</option>'; }).join('') + '</select>' +
@@ -1313,51 +1313,68 @@ if(state.modal==='challan')return challanModal();if(state.modal==='transfer')ret
             '</div></div>' +
             '</div>';
 
-            foot = '<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="nextIdp()">Proceed to Medical Fitness →</button>';
+            foot = '<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="nextIdp()">Proceed to e-Sanjeevani Tele-Consultation →</button>';
         } else if (step === 1) {
-            var isSynced = state.idpMedSynced || false;
-            var isDeclared = state.idpSelfDeclared || false;
-            var medReady = isSynced || isDeclared;
+            var teleState = state.idpTeleState || 'idle'; // idle | calling | completed
 
-            body = '<div class="notice info"><b>Form 1-A: Statutory Medical Fitness for Driving Abroad</b><br>Under 1949 Geneva Convention & CMVR Rule 5, applicants driving internationally must certify physical fitness, stereoscopic vision (6/6), and absence of color blindness.</div>' +
-            '<div style="margin-top:16px;display:grid;gap:12px">' +
-            
-            // Option A: ABDM Sync
-            '<div style="padding:14px;border:1.5px solid ' + (isSynced ? '#86efac' : '#cbd5e1') + ';border-radius:10px;background:' + (isSynced ? '#f0fdf4' : '#fff') + '">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
-            '<b style="font-size:13px;color:var(--navy)">Option A: Sync via ABDM Health Locker (ABHA ID)</b>' +
-            (isSynced ? '<span class="tag green">✓ Form 1-A Verified</span>' : '<span class="tag blue">Instant Digital</span>') +
-            '</div>' +
-            '<p style="font-size:12px;color:#64748b;margin:0 0 10px">Pull digitally signed Form 1-A from Ayushman Bharat Digital Mission tele-consultation.</p>' +
-            (isSynced 
-                ? '<div class="metrics" style="background:#fff;padding:10px;border-radius:8px;border:1px solid #dcfce7"><div class="metric"><span>Certifying Doctor</span><b>Dr. Arvind Kulkarni (KMC-49210)</b></div><div class="metric"><span>Visual Acuity / Reflexes</span><b>6/6 Normal · Trichromatic Color Vision</b></div></div>'
-                : '<button class="btn primary small" style="background:var(--blue);color:#fff;font-weight:700" onclick="idpSyncMedical()">⚡ Sync Form 1-A via ABHA →</button>') +
-            '</div>' +
+            if (teleState === 'idle') {
+                body = '<div class="notice info"><b>e-Sanjeevani National Telemedicine Service (MoHFW)</b><br>As per CMVR Rule 5 & Geneva Convention, IDP issuance mandates clinical examination by a registered medical practitioner for Form 1-A.</div>' +
+                '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:18px;margin:16px 0;text-align:center">' +
+                '<div style="width:52px;height:52px;background:#e0e7ff;color:#3730a3;border-radius:50%;display:grid;place-items:center;font-size:26px;margin:0 auto 12px">🩺</div>' +
+                '<h3 style="margin:0 0 6px;color:var(--navy);font-size:16px">Connect with Duty Medical Officer</h3>' +
+                '<p style="font-size:12px;color:#64748b;margin:0 0 16px;max-width:420px;margin-inline:auto">The government tele-physician will perform visual acuity evaluation, motor reflex review, and sign your digital Form 1-A certificate.</p>' +
+                '<button class="btn primary" style="background:#059669;padding:0 20px;height:44px;font-weight:700" onclick="startIdpTeleconsult()">📞 Start e-Sanjeevani Video Consultation</button>' +
+                '</div>';
+                foot = '<button class="btn secondary" onclick="prevIdp()">Back</button><button class="btn primary" disabled>Consultation Required to Proceed</button>';
+            } else if (teleState === 'calling') {
+                body = '<div style="background:#0f172a;border-radius:12px;padding:24px 16px;color:#fff;text-align:center;position:relative">' +
+                '<div style="width:64px;height:64px;border:3px solid #38bdf8;border-radius:50%;margin:0 auto 14px;overflow:hidden;background:#334155;display:grid;place-items:center;font-size:30px">👨‍⚕️</div>' +
+                '<h3 style="margin:0 0 4px;font-size:17px;color:#38bdf8">Dr. Arvind Kulkarni, MBBS, MD</h3>' +
+                '<p style="font-size:12px;color:#94a3b8;margin:0 0 14px">Duty Tele-Physician · Reg: KMC-49210</p>' +
+                '<div style="display:inline-block;padding:4px 12px;background:rgba(56,189,248,0.2);border-radius:20px;font-size:11px;font-weight:700;color:#7dd3fc" id="tele-status">Establishing Encrypted WebRTC Session...</div>' +
+                '<div style="margin-top:18px;font-size:12px;color:#cbd5e1;line-height:1.5">Screening: <i>Visual Acuity (6/6) · Stereoscopic Depth · Red-Green Color Perception</i></div>' +
+                '</div>';
+                foot = '<button class="btn secondary" disabled>Consultation in progress...</button>';
+            } else {
+                body = '<div class="success-box" style="background:#f0fdf4;color:#166534;margin-bottom:16px">' +
+                '<i style="background:#dcfce7;color:#15803d;font-size:24px;display:grid;place-items:center;width:44px;height:44px;margin:0 auto 10px;border-radius:50%;font-style:normal">✓</i>' +
+                '<h3 style="font-size:17px">e-Sanjeevani Form 1-A Approved</h3>' +
+                '<p style="font-size:12px;margin-top:2px">Dr. Arvind Kulkarni has signed and deposited your digital fitness certificate.</p>' +
+                '</div>' +
+                '<div class="metrics" style="background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0">' +
+                '<div class="metric"><span>Certifying Doctor</span><b>Dr. Arvind Kulkarni (KMC-49210)</b></div>' +
+                '<div class="metric"><span>Visual Acuity</span><b>6/6 in both eyes (Certified)</b></div>' +
+                '<div class="metric"><span>Prescribed Lab Tests</span><b style="color:#b45309">Blood Group & Diagnostic Serology Required</b></div>' +
+                '</div>';
+                foot = '<button class="btn secondary" onclick="prevIdp()">Back</button><button class="btn primary" onclick="nextIdp()">Proceed to Blood Test Upload →</button>';
+            }
+        } else if (step === 2) {
+            // STEP 3: Mandatory Blood Group & Serology Diagnostic Report Upload
+            var isUploaded = state.idpBloodUploaded || false;
 
-            // Option B: Self-Declaration & Vitals Check
-            '<div style="padding:14px;border:1.5px solid ' + (isDeclared ? '#86efac' : '#cbd5e1') + ';border-radius:10px;background:' + (isDeclared ? '#f0fdf4' : '#fff') + '">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
-            '<b style="font-size:13px;color:var(--navy)">Option B: Statutory Health & Vision Self-Declaration</b>' +
-            (isDeclared ? '<span class="tag green">✓ Certified</span>' : '<span class="tag amber">Self-Attestation</span>') +
+            body = '<div class="notice warning"><b>Mandatory Blood Group & Diagnostic Serology Upload</b><br>International licensing conventions require official lab confirmation of blood group marker and vital metabolic baseline before operating vehicles abroad.</div>' +
+            '<div style="margin-top:16px">' +
+            '<label style="font-size:12px;font-weight:800;color:var(--navy);display:block;margin-bottom:8px">Attach Diagnostic Blood Test Report (Form 1-A Annexure)</label>' +
+            '<div style="border: 2px dashed ' + (isUploaded ? '#16a34a' : '#cbd5e1') + '; padding: 22px; text-align: center; border-radius: 10px; background:' + (isUploaded ? '#f0fdf4' : '#f8fafc') + '; cursor: pointer;" onclick="uploadIdpBloodReport()">' +
+            (isUploaded 
+                ? '<div><span style="font-size:32px">🩸</span><br><b style="color:#166534;font-size:14px;display:block;margin-top:6px">Blood_Report_Serology_O_Positive.pdf</b><span class="tag green" style="margin-top:6px;display:inline-block">✓ Verified NABL Accredited Lab</span><p style="font-size:11px;color:#15803d;margin:6px 0 0">Blood Group: <b>O+ Positive</b> · Fasting Glucose: <b>94 mg/dL (Normal)</b> · Hemoglobin: <b>14.2 g/dL</b></p></div>'
+                : '<div><span style="font-size:32px">📁</span><br><b style="color:var(--navy);font-size:14px;display:block;margin-top:6px">Tap / Click to Upload Blood Test Report</b><small style="color:#64748b;font-size:12px">Accepted formats: PDF, JPG, PNG (Max 5MB)</small><br><span class="tag amber" style="margin-top:8px;display:inline-block">Required for International Permit</span></div>') +
             '</div>' +
-            '<label style="display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#334155;cursor:pointer">' +
-            '<input type="checkbox" ' + (isDeclared ? 'checked' : '') + ' onchange="state.idpSelfDeclared=this.checked;render()" style="width:18px;height:18px;margin-top:2px"> ' +
-            '<span>I certify that I possess normal 6/6 visual acuity, no night blindness, full movement of limbs, and no history of cardiovascular or neurological seizures.</span>' +
-            '</label>' +
             '</div>' +
-
+            '<div style="margin-top:12px;font-size:11px;color:#64748b;line-height:1.5">' +
+            'ℹ️ <b>Why is this needed?</b> Foreign road authorities in Geneva Convention signatory nations require confirmed blood typing in case of emergency overseas trauma response.' +
             '</div>';
 
-            var medHint = medReady ? '' : '<div style="width:100%;text-align:center;font-size:12px;color:#b45309;font-weight:600;margin-top:6px">👆 Complete Option A (ABDM Sync) or Option B (Self-Declaration) to proceed</div>';
+            var bloodHint = isUploaded ? '' : '<div style="width:100%;text-align:center;font-size:12px;color:#b45309;font-weight:600;margin-top:6px">👆 Please upload your diagnostic blood test report above to continue</div>';
 
             foot = '<div style="display:flex;flex-direction:column;width:100%;gap:6px">' +
             '<div style="display:flex;justify-content:flex-end;gap:10px;width:100%">' +
             '<button class="btn secondary" onclick="prevIdp()">Back</button>' +
-            '<button class="btn primary" ' + (medReady ? '' : 'disabled') + ' onclick="nextIdp()">Verify License & Classes →</button>' +
+            '<button class="btn primary" ' + (isUploaded ? '' : 'disabled') + ' onclick="nextIdp()">Verify License Classes →</button>' +
             '</div>' +
-            medHint +
+            bloodHint +
             '</div>';
-        } else if (step === 2) {
+        } else if (step === 3) {
             body = '<div class="notice success"><b>Valid Indian Driving License Attached</b></div>' +
             '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:16px 0">' +
             '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
@@ -1374,7 +1391,7 @@ if(state.modal==='challan')return challanModal();if(state.modal==='transfer')ret
             '</div>';
 
             foot = '<button class="btn secondary" onclick="prevIdp()">Back</button><button class="btn primary" onclick="nextIdp()">Proceed to Fee Payment →</button>';
-        } else if (step === 3) {
+        } else if (step === 4) {
             body = '<div class="notice info"><b>Statutory IDP Fee Schedule</b><br>Standardized statutory fee applicable across all Indian RTO jurisdictions under CMVR Rule 14.</div>' +
             '<div class="metrics" style="margin:18px 0">' +
             '<div class="metric"><span>International Driving Permit Application Fee (Form 4A)</span><b>₹1,000</b></div>' +
@@ -1387,7 +1404,7 @@ if(state.modal==='challan')return challanModal();if(state.modal==='transfer')ret
             '</div>';
 
             foot = '<button class="btn secondary" onclick="prevIdp()">Back</button><button class="btn primary" onclick="payIdp()">Pay ₹1,000 Securely →</button>';
-        } else if (step === 4) {
+        } else if (step === 5) {
             body = '<div class="success-box" style="background:#f0fdf4;color:#166534">' +
             '<i style="background:#dcfce7;color:#15803d;font-size:26px;display:grid;place-items:center;width:50px;height:50px;margin:0 auto 12px;border-radius:50%;font-style:normal">✈️</i>' +
             '<h3 style="font-size:19px">International Driving Permit Issued!</h3>' +
@@ -1411,14 +1428,12 @@ if(state.modal==='challan')return challanModal();if(state.modal==='transfer')ret
         return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>International Driving Permit (IDP)</h2><p>Form 4A · 1949 Geneva Convention</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">' + head + body + '</div><footer class="modal-foot">' + foot + '</footer></section></div>';
     }
 
-    /* =========================================================================
-       2. DRIVING LICENSE RENEWAL - FORM 9 & FORM 1-A (MVA 2019 / CMVR)
-       ========================================================================= */
     function renewDlModal() {
         var step = state.renewStep || 0;
         var totalFee = 400; // Rs 200 Renewal + Rs 200 Smart Card
         var curName = (state.role === 'buyer' ? 'Rohan Shah' : 'Ananya Rao');
         var curDL = (state.role === 'applicant' && state.dlStatus === 'dispatched') ? state.dlNumber : 'KA-01-2015-004821';
+        var isAge40Plus = state.renewAge40Plus || false;
         
         var head = '<div class="stepper">' +
             '<div class="step ' + (step === 0 ? 'active' : step > 0 ? 'done' : '') + '">1 · Eligibility</div>' +
@@ -1451,48 +1466,64 @@ if(state.modal==='challan')return challanModal();if(state.modal==='transfer')ret
 
             foot = '<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="nextRenew()">Proceed to Medical Fitness →</button>';
         } else if (step === 1) {
-            var isSynced = state.renewMedSynced || false;
-            var isDeclared = state.renewSelfDeclared || false;
-            var medReady = isSynced || isDeclared;
+            var c1 = state.form1_vision || false;
+            var c2 = state.form1_epilepsy || false;
+            var c3 = state.form1_limbs || false;
+            var c4 = state.form1_hearing || false;
+            var selfComplete = c1 && c2 && c3 && c4;
+            var teleDone = state.renewTeleDone || false;
+            var ready = isAge40Plus ? teleDone : selfComplete;
 
-            body = '<div class="notice info"><b>Medical Fitness Declaration (CMVR Rule 5 / Form 1 & 1-A)</b><br>For renewing non-transport driving licenses under age 40, a self-declaration is sufficient. For commercial or 40+ categories, a certified medical certificate (Form 1-A) is required.</div>' +
-            '<div style="margin-top:16px;display:grid;gap:12px">' +
-            
-            // Route 1: Form 1 Self-Declaration
-            '<div style="padding:14px;border:1.5px solid ' + (isDeclared ? '#86efac' : '#cbd5e1') + ';border-radius:10px;background:' + (isDeclared ? '#f0fdf4' : '#fff') + '">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
-            '<b style="font-size:13px;color:var(--navy)">Route 1: Form 1 Self-Declaration of Physical Fitness</b>' +
-            (isDeclared ? '<span class="tag green">✓ Self-Certified</span>' : '<span class="tag amber">Requires Check</span>') +
+            var ageToggle = '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f1f5f9;border-radius:8px;margin-bottom:14px">' +
+            '<span style="font-size:12px;font-weight:700;color:var(--navy)">Applicant Age Bracket:</span>' +
+            '<div style="display:flex;gap:6px">' +
+            '<button class="btn ' + (!isAge40Plus ? 'primary' : 'secondary') + ' small" style="height:28px;font-size:11px;padding:0 10px" onclick="state.renewAge40Plus=false;render()">Under 40 Yrs (Self-Declaration)</button>' +
+            '<button class="btn ' + (isAge40Plus ? 'primary' : 'secondary') + ' small" style="height:28px;font-size:11px;padding:0 10px" onclick="state.renewAge40Plus=true;render()">40+ Yrs (Doctor Required)</button>' +
             '</div>' +
-            '<label style="display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#334155;cursor:pointer">' +
-            '<input type="checkbox" id="chk-renew-form1" ' + (isDeclared ? 'checked' : '') + ' onchange="state.renewSelfDeclared=this.checked;render()" style="width:18px;height:18px;margin-top:2px"> ' +
-            '<span><b>I declare under penalty of law:</b> I do not suffer from epilepsy, giddiness, night blindness, cardiac defects, or muscular impairment that would render driving dangerous.</span>' +
-            '</label>' +
-            '</div>' +
-
-            // Route 2: ABDM Health Locker Sync
-            '<div style="padding:14px;border:1.5px solid ' + (isSynced ? '#86efac' : '#cbd5e1') + ';border-radius:10px;background:' + (isSynced ? '#f0fdf4' : '#fff') + '">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
-            '<b style="font-size:13px;color:var(--navy)">Route 2: ABDM Health Locker Sync (Form 1-A Doctor Certificate)</b>' +
-            (isSynced ? '<span class="tag green">✓ Form 1-A Synced</span>' : '<span class="tag blue">Digital Health ID</span>') +
-            '</div>' +
-            '<p style="font-size:12px;color:#64748b;margin:0 0 10px">Fetch official clinical tele-fitness certification from a registered medical practitioner.</p>' +
-            (isSynced 
-                ? '<div style="font-size:12px;color:#166534;background:#fff;padding:10px;border-radius:8px;border:1px solid #bbf7d0">✓ Verified: Dr. Arvind Kulkarni (KMC-49210) · Tele-certified Ophthalmological Acuity 6/6 (Valid till 2027)</div>'
-                : '<button class="btn primary small" style="background:var(--blue);color:#fff;font-weight:700" onclick="renewSyncMedical()">⚡ Fetch Form 1-A via ABHA →</button>') +
-            '</div>' +
-
             '</div>';
 
-            var medHint = medReady ? '' : '<div style="width:100%;text-align:center;font-size:12px;color:#b45309;font-weight:600;margin-top:6px">👆 Check Form 1 Self-Declaration or Sync via ABDM above to unlock next step</div>';
+            if (!isAge40Plus) {
+                // AGE < 40: Self-declaration checkboxes
+                body = ageToggle +
+                '<div class="notice info"><b>Form 1: Physical Fitness Self-Declaration (Age Under 40)</b><br>As per CMVR Rule 5(1), non-transport applicants under 40 years can self-certify fitness by answering all mandatory declarations below.</div>' +
+                '<div style="display:grid;gap:10px;margin-top:14px">' +
+                '<label style="display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid ' + (c1 ? '#86efac' : '#cbd5e1') + ';border-radius:8px;background:' + (c1 ? '#f0fdf4' : '#fff') + ';cursor:pointer">' +
+                '<input type="checkbox" ' + (c1 ? 'checked' : '') + ' onchange="state.form1_vision=this.checked;render()" style="width:18px;height:18px;margin-top:2px">' +
+                '<span style="font-size:12px;color:var(--navy)"><b>1. Visual Acuity & Sight:</b> I declare I can distinguish number plates at 25 metres in good daylight with or without glasses and do not suffer from night blindness.</span>' +
+                '</label>' +
+                '<label style="display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid ' + (c2 ? '#86efac' : '#cbd5e1') + ';border-radius:8px;background:' + (c2 ? '#f0fdf4' : '#fff') + ';cursor:pointer">' +
+                '<input type="checkbox" ' + (c2 ? 'checked' : '') + ' onchange="state.form1_epilepsy=this.checked;render()" style="width:18px;height:18px;margin-top:2px">' +
+                '<span style="font-size:12px;color:var(--navy)"><b>2. Absence of Epilepsy & Giddiness:</b> I declare I do not suffer from sudden attacks of loss of consciousness, giddiness, or severe cardiovascular disease.</span>' +
+                '</label>' +
+                '<label style="display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid ' + (c3 ? '#86efac' : '#cbd5e1') + ';border-radius:8px;background:' + (c3 ? '#f0fdf4' : '#fff') + ';cursor:pointer">' +
+                '<input type="checkbox" ' + (c3 ? 'checked' : '') + ' onchange="state.form1_limbs=this.checked;render()" style="width:18px;height:18px;margin-top:2px">' +
+                '<span style="font-size:12px;color:var(--navy)"><b>3. Limb & Motor Control:</b> I have full functional mobility and control of hands, arms, feet, and legs required for vehicle control.</span>' +
+                '</label>' +
+                '<label style="display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid ' + (c4 ? '#86efac' : '#cbd5e1') + ';border-radius:8px;background:' + (c4 ? '#f0fdf4' : '#fff') + ';cursor:pointer">' +
+                '<input type="checkbox" ' + (c4 ? 'checked' : '') + ' onchange="state.form1_hearing=this.checked;render()" style="width:18px;height:18px;margin-top:2px">' +
+                '<span style="font-size:12px;color:var(--navy)"><b>4. Auditory Hearing Perception:</b> I do not suffer from severe deafness that prevents hearing auditory vehicle horn signals.</span>' +
+                '</label>' +
+                '</div>';
 
-            foot = '<div style="display:flex;flex-direction:column;width:100%;gap:6px">' +
-            '<div style="display:flex;justify-content:flex-end;gap:10px;width:100%">' +
-            '<button class="btn secondary" onclick="prevRenew()">Back</button>' +
-            '<button class="btn primary" ' + (medReady ? '' : 'disabled') + ' onclick="nextRenew()">Authenticate via Aadhaar e-KYC →</button>' +
-            '</div>' +
-            medHint +
-            '</div>';
+                var selfHint = selfComplete ? '<div style="font-size:12px;color:#15803d;font-weight:700;margin-top:10px;text-align:center">✓ All 4 Form 1 statutory fitness declarations certified.</div>' : '<div style="font-size:12px;color:#b45309;font-weight:600;margin-top:8px;text-align:center">👆 Please check all 4 declarations to complete self-certification</div>';
+                body += selfHint;
+            } else {
+                // AGE >= 40: Doctor tele-consultation required via e-Sanjeevani
+                body = ageToggle +
+                '<div class="notice warning"><b>Mandatory Form 1-A Medical Examination (Age 40+)</b><br>Under Section 15 of MVA, applicants aged 40 and above must be examined by a registered doctor for visual acuity and neurological fitness.</div>' +
+                '<div style="background:#f8fafc;border:1.5px solid ' + (teleDone ? '#86efac' : '#cbd5e1') + ';border-radius:10px;padding:18px;margin:16px 0;text-align:center;background:' + (teleDone ? '#f0fdf4' : '#fff') + '">' +
+                (teleDone 
+                    ? '<div style="width:48px;height:48px;background:#dcfce7;color:#15803d;border-radius:50%;display:grid;place-items:center;font-size:24px;margin:0 auto 10px">✓</div>' +
+                      '<h3 style="color:#166534;margin:0 0 4px;font-size:16px">e-Sanjeevani Tele-Fitness Certified!</h3>' +
+                      '<div class="metrics" style="margin-top:12px;text-align:left"><div class="metric"><span>Certified By</span><b>Dr. Arvind Kulkarni (KMC-49210)</b></div><div class="metric"><span>Medical Certificate</span><b style="color:var(--blue)">Form 1-A Digitally Deposited</b></div></div>'
+                    : '<div style="width:52px;height:52px;background:#e0e7ff;color:#3730a3;border-radius:50%;display:grid;place-items:center;font-size:26px;margin:0 auto 12px">🩺</div>' +
+                      '<h3 style="margin:0 0 6px;color:var(--navy);font-size:16px">e-Sanjeevani Tele-Doctor Consultation</h3>' +
+                      '<p style="font-size:12px;color:#64748b;margin:0 0 16px;max-width:420px;margin-inline:auto">Connect with a government duty medical officer over video to complete the mandatory vision and clinical evaluation.</p>' +
+                      '<button class="btn primary" style="background:#059669;padding:0 20px;height:44px;font-weight:700" onclick="startRenewTeleconsult()">📞 Connect with e-Sanjeevani Doctor</button>') +
+                '</div>';
+            }
+
+            foot = '<button class="btn secondary" onclick="prevRenew()">Back</button><button class="btn primary" ' + (ready ? '' : 'disabled') + ' onclick="nextRenew()">Authenticate via Aadhaar e-KYC →</button>';
         } else if (step === 2) {
             body = '<div class="notice success"><b>Aadhaar Biometric e-KYC Verified</b></div>' +
             '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:16px 0">' +
@@ -1842,16 +1873,38 @@ window.payIdp = function() {
 };
 
 
-window.idpSyncMedical = function() {
-    state.idpMedSynced = true;
+
+window.startIdpTeleconsult = function() {
+    state.idpTeleState = 'calling';
     render();
-    alertToast('ABDM Synced', 'Form 1-A Medical Certificate linked from Dr. Arvind Kulkarni (KMC-49210).');
+    setTimeout(function() {
+        var st = document.getElementById('tele-status');
+        if (st) st.innerText = 'Connected: Video Consultation in Progress with Dr. Arvind Kulkarni...';
+    }, 1200);
+    setTimeout(function() {
+        state.idpTeleState = 'completed';
+        render();
+        alertToast('Teleconsultation Completed', 'Form 1-A medical fitness certificate signed by Dr. Arvind Kulkarni (KMC-49210).');
+    }, 2800);
 };
 
-window.renewSyncMedical = function() {
-    state.renewMedSynced = true;
+window.uploadIdpBloodReport = function() {
+    state.idpBloodUploaded = true;
     render();
-    alertToast('ABDM Synced', 'Form 1-A Medical Certificate linked from Dr. Arvind Kulkarni (KMC-49210).');
+    alertToast('Lab Report Attached', 'Blood_Report_Serology_O_Positive.pdf uploaded and verified.');
+};
+
+window.startRenewTeleconsult = function() {
+    state.renewTeleDone = true;
+    render();
+    alertToast('e-Sanjeevani Certified', 'Dr. Arvind Kulkarni has certified Form 1-A for Age 40+ category.');
+};
+
+window.payIdp = function() {
+    recordPayment("International Driving Permit (Form 4A)", 1000);
+    state.idpStep = 5;
+    save();
+    render();
 };
 
 window.openRenewDl = function() {
