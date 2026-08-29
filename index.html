@@ -1279,7 +1279,58 @@ if(state.modal==='challan')return challanModal();if(state.modal==='transfer')ret
         return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>e-Challan details</h2><p>'+chId+' · '+chReg+'</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">'+body+'</div><footer class="modal-foot">'+foot+'</footer></section></div>';
     }
 
-    function nocModal(){
+    
+function transferModal() {
+    var step = state.transferStep || 0, c = car(), head = '<div class="stepper"><div class="step ' + (step === 0 ? 'active' : 'done') + '">1 · Readiness</div><div class="step ' + (step === 1 ? 'active' : (step > 1 ? 'done' : '')) + '">2 · Buyer</div><div class="step ' + (step === 2 ? 'active' : '') + '">3 · Send invite</div></div>', body = '', foot = '';
+    
+    if (step === 0) {
+        var vList = getVehicles();
+        var carSelect = '<div class="field"><label>Select Vehicle to Transfer</label><select class="input" onchange="state.selected=this.value;render()">' + vList.map(function(v) {
+            return '<option value="' + v.id + '" ' + (v.id === state.selected ? 'selected' : '') + '>' + v.name + ' · ' + v.reg + '</option>';
+        }).join('') + '</select></div>';
+        
+        var challanPaid = (c.id === 'ka01' || c.id === 'mh12_3') ? (state.challanStatus === 'paid') : true;
+        var needsNoc = (c.id === 'ka01' && !nocCleared);
+        
+        body = carSelect +
+        '<div class="notice info"><b>' + c.state + ' route:</b> Remote video identity verification is available under faceless MVA guidelines.</div>' +
+        '<div class="checklist" style="margin-top:15px">' +
+        '<div class="checkrow"><div class="check" style="background:#dcfce7;color:#15803d">✓</div><div><b>Registered owner identity verified</b><span>Aadhaar e-KYC linked to active account.</span></div></div>' +
+        '<div class="checkrow ' + (challanPaid ? '' : 'warn') + '"><div class="check" style="' + (challanPaid ? 'background:#dcfce7;color:#15803d' : 'background:#fee2e2;color:#b91c1c') + '">' + (challanPaid ? '✓' : '!') + '</div><div><b>' + (challanPaid ? 'No outstanding traffic challans' : 'Traffic violation needs attention') + '</b><span>' + (challanPaid ? 'Vehicle is legally clear for title transfer.' : 'Challan must be cleared or transferred before RTO submission.') + '</span></div></div>' +
+        '<div class="checkrow ' + (needsNoc ? 'warn' : '') + '"><div class="check" style="' + (needsNoc ? 'background:#fef3c7;color:#b45309' : 'background:#dcfce7;color:#15803d') + '">' + (needsNoc ? '!' : '✓') + '</div><div><b>' + (needsNoc ? 'Active Bank Loan (NOC Required)' : 'Bank loan hypothecation clear') + '</b><span>' + (needsNoc ? 'Digital NOC from HDFC Bank is required before inviting buyer.' : 'No active financial lien on vehicle registration.') + '</span></div></div>' +
+        '<div class="checkrow"><div class="check" style="background:#dcfce7;color:#15803d">✓</div><div><b>Statutory documents pre-checked</b><span>Smart RC, active insurance and PUC synced via DigiLocker.</span></div></div>' +
+        '</div>';
+        
+        if (needsNoc) {
+            foot = '<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="openNoc()">Request Digital Bank NOC →</button>';
+        } else {
+            foot = '<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="nextTransfer()">Continue to Buyer →</button>';
+        }
+    } else if (step === 1) {
+        body = '<div class="form-grid">' +
+        '<div class="field full"><label for="buyer-name">Buyer Full Name (as per Aadhaar)</label><input class="input" id="buyer-name" value="' + safe(state.transfer.buyerName || 'Rohan Shah') + '" placeholder="e.g. Rohan Shah"></div>' +
+        '<div class="field"><label for="buyer-mobile">Buyer Mobile Number (for OTP invite)</label><input class="input" id="buyer-mobile" value="' + safe(state.transfer.buyerMobile || '98 7654 3210') + '" inputmode="numeric" placeholder="e.g. 98 7654 3210"></div>' +
+        '<div class="field"><label for="buyer-state">Buyer Residence State (Jurisdictional RTO)</label><select class="input" id="buyer-state"><option ' + (c.state === 'Karnataka' ? 'selected' : '') + '>Karnataka</option><option ' + (c.state === 'Maharashtra' ? 'selected' : '') + '>Maharashtra</option><option ' + (c.state === 'Tamil Nadu' ? 'selected' : '') + '>Tamil Nadu</option></select></div>' +
+        '</div>' +
+        '<div class="notice info" style="margin-top:14px"><b>What happens next:</b> The buyer receives a secure invitation in their verified citizen dashboard with this vehicle snapshot. Both parties complete independent remote video KYC sessions.</div>';
+        
+        foot = '<button class="btn secondary" onclick="prevTransfer()">Back</button><button class="btn primary" onclick="nextTransfer()">Review Invite →</button>';
+    } else {
+        body = '<div class="notice success"><b>Ready to initiate secure P2P transfer room.</b><br>The buyer is invited directly into their private citizen dashboard. No public links or shared passwords.</div>' +
+        '<div class="metrics" style="margin-top:17px">' +
+        '<div class="metric"><span>Vehicle</span><b>' + c.name + ' · ' + c.reg + '</b></div>' +
+        '<div class="metric"><span>Buyer</span><b>' + safe(state.transfer.buyerName || 'Rohan Shah') + '</b></div>' +
+        '<div class="metric"><span>Invite Validity</span><b>48 Hours</b></div>' +
+        '<div class="metric"><span>Next Step</span><b>Seller Video KYC Consent</b></div>' +
+        '</div>';
+        
+        foot = '<button class="btn secondary" onclick="prevTransfer()">Back</button><button class="btn primary" onclick="sendInvite()">Send Buyer Invite →</button>';
+    }
+    
+    return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Start Ownership Transfer</h2><p>' + c.name + ' · ' + c.reg + '</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">' + head + body + '</div><footer class="modal-foot">' + foot + '</footer></section></div>';
+}
+
+function nocModal(){
         var step=state.nocStep||0,body='',foot='';
         if(step===0){
             body='<div class="notice info"><b>Digital NOC Request</b><br>Your vehicle is hypothecated to <b>HDFC Bank</b>. We will ping the bank\'s API to instantly verify loan closure and issue a digital NOC to the RTO.</div><div class="field" style="margin-top:15px"><label>Loan Account Number</label><input class="input" value="XXXX-XXXX-8921" disabled></div>';
@@ -1291,7 +1342,54 @@ if(state.modal==='challan')return challanModal();if(state.modal==='transfer')ret
         return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Bank Hypothecation (NOC)</h2><p>'+car().reg+'</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">'+body+'</div><footer class="modal-foot">'+foot+'</footer></section></div>';
     }
 
-    function buyerInviteModal(){return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Transfer Request Received</h2><p>From: Ananya Rao</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body"><div class="notice info"><b>You have received a request to accept ownership of a vehicle.</b></div><div class="metrics" style="margin-top:17px"><div class="metric"><span>Vehicle</span><b>Hyundai Creta · KA 01 MT 4582</b></div><div class="metric"><span>Seller</span><b>Ananya Rao</b></div><div class="metric"><span>Government transfer fee</span><b>Mock estimate: ₹300 + charges</b></div></div><p style="margin-top: 15px; font-size: 13px; color: #526681;">Please review the details. You can accept the request to proceed with remote verification, or reject it if you do not recognize this transaction.</p></div><footer class="modal-foot"><button class="btn secondary" onclick="rejectTransfer()">Reject</button><button class="btn primary" onclick="buyerAccept()">Accept & Proceed</button></footer></section></div>'}
+    
+function kycModal(){
+    var role=state.modal==='kyc-seller'?'seller':'buyer',name=role==='seller'?'Ananya':'Rohan',steps=[['Face & Liveness Detection','Look directly at the camera. Now turn your head slightly to the left, then right, and blink twice to confirm liveness.'],['Verbal Consent (OTP)','Please read the following secure code aloud: <b style="font-size:18px;letter-spacing:4px;color:var(--blue);display:block;margin-top:8px">8 2 4 9 1</b> This establishes your non-repudiable consent.'],['Verify physical document',role==='seller'?'Hold your original physical RC card up to the camera so we can scan the details.':'Review vehicle details and confirm you agree to proceed.'],['Complete verification','Your verified consent will attach to this mock transfer application.']],item=steps[state.kycStep],bars='<div class="kyc-progress">'+steps.map(function(_,i){return '<i class="'+(i<=state.kycStep?'done':'')+'"></i>'}).join('')+'</div>';
+    setTimeout(function(){var v=document.getElementById('webcam-feed');if(v){if(window.currentWebcamStream){v.srcObject=window.currentWebcamStream}else if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){navigator.mediaDevices.getUserMedia({video:true,audio:false}).then(function(s){window.currentWebcamStream=s;v.srcObject=s}).catch(function(e){console.warn('Webcam error:',e)})}}},100);
+    return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Remote verification</h2><p>'+ (role==='seller'?'Seller':'Buyer')+' session · about 3 minutes</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body"><div class="video"><div><video id="webcam-feed" autoplay muted playsinline style="width:100px;height:100px;object-fit:cover;border-radius:50%;border:4px solid rgba(255,255,255,.72);margin-bottom:13px;box-shadow:0 0 0 7px rgba(255,255,255,.16)"></video><b>'+name+' is on camera</b><span>Live secure verification session</span><div class="signal">Connection is good</div></div></div>'+bars+'<div class="instruction"><b>Step '+(state.kycStep+1)+' of 4 · '+item[0]+'</b><br>'+item[1]+'</div><div class="notice info" style="margin-top:12px">Using live local camera feed. No data leaves your device.</div></div><footer class="modal-foot"><button class="btn secondary" onclick="closeModal()">Finish later</button><button class="btn primary" onclick="nextKyc(\''+role+'\')">'+(state.kycStep===3?'Complete verification':'I’m ready, continue')+' →</button></footer></section></div>';
+}
+
+function duplicateRcModal(){
+    var step=state.dupRcStep||0,head='<div class="stepper"><div class="step '+(step===0?'active':'done')+'">1 · Reason</div><div class="step '+(step===1?'active':'')+'">2 · Payment</div></div>',body='',foot='';
+    if(step===0){
+        body='<div class="notice info"><b>No RTO visit required.</b> Your physical smart card will be mailed, and a digital RC will be available immediately.</div><div class="field" style="margin-top:15px"><label>Reason for duplicate</label><select class="input" id="dup-reason" onchange="document.getElementById(\'fir-div\').style.display=this.value!==\'torn\'?\'block\':\'none\';document.getElementById(\'upload-div\').style.display=this.value===\'torn\'?\'block\':\'none\'"><option value="lost">Lost</option><option value="stolen">Stolen</option><option value="torn">Torn / Mutilated</option></select></div><div class="field" id="fir-div"><label>Police FIR Number</label><input class="input" placeholder="e.g. FIR-1234-2026"></div><div class="field" id="upload-div" style="display:none"><label>Upload Torn RC Image</label><div style="border: 2px dashed #cbd5e1; padding: 20px; text-align: center; border-radius: 8px; color: #64748b; cursor: pointer; margin-top: 8px;" onclick="alertToast(\'Upload dialog\',\'Mock file picker opened.\')"><i style="font-size: 24px;">📄</i><br><span style="display: inline-block; margin-top: 8px; font-size: 14px;">Tap to upload photo of the torn RC</span></div></div>';
+        foot='<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="nextDupRc()">Continue to payment →</button>';
+    } else {
+        body='<div class="metrics"><div class="metric"><span>Service Fee</span><b>₹300</b></div><div class="metric"><span>Smart Card Fee</span><b>₹200</b></div><div class="metric"><span>Total Due</span><b style="color:var(--navy);font-size:15px">₹500</b></div></div><div class="notice success" style="margin-top:15px">Payment will be processed securely.</div>';
+        foot='<button class="btn secondary" onclick="prevDupRc()">Back</button><button class="btn primary" onclick="payDupRc()">Pay ₹500 securely</button>';
+    }
+    return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Duplicate RC</h2><p>'+car().reg+'</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">'+head+body+'</div><footer class="modal-foot">'+foot+'</footer></section></div>';
+}
+
+function successModal(){
+    return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><div class="modal-body"><div class="success-box"><div style="background:#dcfce7;color:#15803d;display:grid;place-items:center;width:50px;height:50px;margin:0 auto 12px;border-radius:50%;font-weight:900;font-size:20px">✓</div><h3>'+safe(state.successTitle||'All set')+'</h3><p>'+safe(state.successBody||'')+'</p></div></div><footer class="modal-foot"><button class="btn primary" onclick="closeModal()">Return to dashboard</button></footer></section></div>';
+}
+
+function vehicleVerifyModal(){
+    var step=state.vehicleVerifyStep||0,body='',foot='';
+    if(step===0){
+        body='<div class="notice info"><b>Upload Current Photos</b><br>Upload photos of your physical vehicle and its chassis number. They will be submitted for verification.</div><div class="field" style="margin-top:16px"><label>1. Vehicle Front/Side showing Number Plate</label><div style="border: 2px dashed #cbd5e1; padding: 20px; text-align: center; border-radius: 8px; color: #64748b; cursor: pointer;" onclick="document.getElementById(\'v-photo-1\').style.display=\'block\';this.style.display=\'none\'"><i style="font-size: 24px; font-style: normal">📷</i><br><span style="display: block; margin-top: 8px; font-size: 13px;">Tap to upload or take photo</span></div><div id="v-photo-1" style="display:none;background:#e2e8f0;height:120px;border-radius:8px;position:relative;overflow:hidden"><div style="position:absolute;inset:0;background:url(https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=400&q=80) center/cover"></div><div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.6);color:white;padding:2px 6px;font-size:11px;border-radius:4px">Attached</div></div></div><div class="field" style="margin-top:16px"><label>2. Physical Chassis Number / VIN Plate</label><div style="border: 2px dashed #cbd5e1; padding: 20px; text-align: center; border-radius: 8px; color: #64748b; cursor: pointer;" onclick="document.getElementById(\'v-photo-2\').style.display=\'block\';this.style.display=\'none\'"><i style="font-size: 24px; font-style: normal">🔍</i><br><span style="display: block; margin-top: 8px; font-size: 13px;">Tap to upload or take photo</span></div><div id="v-photo-2" style="display:none;background:#e2e8f0;height:120px;border-radius:8px;position:relative;overflow:hidden"><div style="position:absolute;inset:0;background:url(https://images.unsplash.com/photo-1616857181047-9759be398b1b?auto=format&fit=crop&w=400&q=80) center/cover"></div><div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.6);color:white;padding:2px 6px;font-size:11px;border-radius:4px">Attached</div></div></div>';
+        foot='<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="runVehicleAI()">Submit for Verification →</button>';
+    } else if(step===1){
+        body='<div style="text-align:center;padding:40px 20px"><div style="width:48px;height:48px;border:4px solid #f1f5f9;border-top-color:var(--blue);border-radius:50%;margin:0 auto 20px;animation:spin 1s linear infinite"></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style><h3 style="color:var(--navy);margin-bottom:8px">Analyzing Images...</h3><p style="color:#64748b;font-size:13px" id="ai-status">Checking for AI generation and Deepfakes...</p></div>';
+        foot='<button class="btn secondary" disabled>Please wait...</button>';
+    }
+    return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Vehicle Verification</h2><p>KA 01 MT 4582</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">'+body+'</div><footer class="modal-foot">'+foot+'</footer></section></div>';
+}
+
+function hsrpModal(){
+    var step=state.hsrpStep||0,body='',foot='';
+    if(step===0){
+        body='<div class="notice warning"><b>Mandatory HSRP Update</b><br>Your vehicle requires a High Security Registration Plate (HSRP) with a color-coded fuel sticker as per MoRTH guidelines.</div><div class="field" style="margin-top:15px"><label>Select Fitment Option</label><select class="input"><option>Home Delivery & Fitment (Recommended)</option><option>Visit Authorized Dealer</option></select></div><div class="field"><label>Select Appointment Date</label><input type="date" class="input"></div>';
+        foot='<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="nextHsrp()">Proceed to Pay ₹400 →</button>';
+    } else {
+        body='<div class="metrics"><div class="metric"><span>HSRP Plate</span><b>₹300</b></div><div class="metric"><span>Home Fitment</span><b>₹100</b></div><div class="metric"><span>Total Due</span><b style="color:var(--navy);font-size:15px">₹400</b></div></div><div class="notice success" style="margin-top:15px">Payment will be processed securely via UPI/Card.</div>';
+        foot='<button class="btn secondary" onclick="prevHsrp()">Back</button><button class="btn primary" onclick="payHsrp()">Pay ₹400 securely</button>';
+    }
+    return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Book HSRP Plate</h2><p>'+car().reg+'</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body">'+body+'</div><footer class="modal-foot">'+foot+'</footer></section></div>';
+}
+
+function buyerInviteModal(){return '<div class="backdrop" role="dialog" aria-modal="true"><section class="modal"><header class="modal-head"><div><h2>Transfer Request Received</h2><p>From: Ananya Rao</p></div><button class="close" onclick="closeModal()" aria-label="Close">×</button></header><div class="modal-body"><div class="notice info"><b>You have received a request to accept ownership of a vehicle.</b></div><div class="metrics" style="margin-top:17px"><div class="metric"><span>Vehicle</span><b>Hyundai Creta · KA 01 MT 4582</b></div><div class="metric"><span>Seller</span><b>Ananya Rao</b></div><div class="metric"><span>Government transfer fee</span><b>Mock estimate: ₹300 + charges</b></div></div><p style="margin-top: 15px; font-size: 13px; color: #526681;">Please review the details. You can accept the request to proceed with remote verification, or reject it if you do not recognize this transaction.</p></div><footer class="modal-foot"><button class="btn secondary" onclick="rejectTransfer()">Reject</button><button class="btn primary" onclick="buyerAccept()">Accept & Proceed</button></footer></section></div>'}
     
     function myLicense(){
     var isApp = state.role === 'applicant';
