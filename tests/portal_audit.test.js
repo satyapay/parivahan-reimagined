@@ -1,4 +1,4 @@
-const app = require('./server/server');
+const app = require('../server/server');
 const http = require('http');
 const fs = require('fs');
 const jsdom = require('jsdom');
@@ -8,7 +8,7 @@ const server = http.createServer(app);
 const PORT = 4568;
 
 server.listen(PORT, async () => {
-    const html = fs.readFileSync('index.html', 'utf8');
+    const html = fs.readFileSync('../index.html', 'utf8');
     const dom = new JSDOM(html, {
         runScripts: "dangerously",
         resources: "usable",

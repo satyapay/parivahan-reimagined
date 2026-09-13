@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server/server.js",
     "dev": "node --watch server/server.js",
-    "test": "node full_portal_audit.js"
+    "test": "node tests/portal_audit.test.js",
+    "test:api": "node tests/api.test.js"
   },
   "keywords": [
     "parivahan",
@@ -15,7 +16,9 @@
     "sarathi",
     "rto",
     "supabase",
-    "express"
+    "postgresql",
+    "express",
+    "product-management"
   ],
   "author": "Satya Krithik",
   "license": "MIT",
